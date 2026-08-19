@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet, Image, Pressable } from "react-native";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
 import { useContext } from "react";
 import { AppContext } from "../../context/AppContext";
 
@@ -48,6 +48,13 @@ export default function HomeScreen() {
         onPress={() => router.push("/(tabs)/perfil")}
       >
         <Text style={styles.buttonText}>Mi Perfil</Text>
+      </Pressable>
+
+      <Pressable
+        style={styles.button}
+        onPress={() => router.push("/(tabs)/mercado" as Href)}
+      >
+        <Text style={styles.buttonText}>Consultar Mercado</Text>
       </Pressable>
     </View>
   );

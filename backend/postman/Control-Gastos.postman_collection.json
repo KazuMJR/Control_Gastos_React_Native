@@ -1,0 +1,82 @@
+{
+  "info": {
+    "name": "Control de Gastos API",
+    "description": "Colección local para probar autenticación con Sanctum, categorías y gastos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "token", "value": "" },
+    { "key": "categoriaId", "value": "1" },
+    { "key": "gastoId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Ana López\",\n  \"email\": \"ana@example.com\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"device_name\": \"Postman\"\n}" },
+            "url": "{{baseUrl}}/api/auth/register"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.collectionVariables.set('token', body.token);"] } }]
+        },
+        {
+          "name": "Iniciar sesión",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"ana@example.com\",\n  \"password\": \"password123\",\n  \"device_name\": \"Postman\"\n}" },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["const body = pm.response.json();", "pm.collectionVariables.set('token', body.token);"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Categorías",
+      "item": [
+        {
+          "name": "Crear categoría",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Alimentación\",\n  \"color\": \"#F97316\"\n}" },
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('categoriaId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Listar categorías",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/categorias" }
+        }
+      ]
+    },
+    {
+      "name": "Gastos",
+      "item": [
+        {
+          "name": "Crear gasto",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"categoria_id\": {{categoriaId}},\n  \"descripcion\": \"Almuerzo\",\n  \"monto\": 45.50,\n  \"fecha_gasto\": \"2026-08-18\",\n  \"notas\": \"Prueba desde Postman\"\n}" },
+            "url": "{{baseUrl}}/api/gastos"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.collectionVariables.set('gastoId', pm.response.json().id);"] } }]
+        },
+        {
+          "name": "Listar mis gastos",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/gastos" }
+        },
+        {
+          "name": "Obtener perfil",
+          "request": { "method": "GET", "header": [{ "key": "Accept", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{baseUrl}}/api/usuario" }
+        }
+      ]
+    }
+  ]
+}
