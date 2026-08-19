@@ -1,9 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { isAxiosError } from "axios";
 import { useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   View,
 } from "react-native";
 
+import { AppContext, USD_TO_GTQ } from "../../context/AppContext";
 import { getExternalProduct, Product } from "../../services/external-api";
 
 export default function ProductoDetalleScreen() {
@@ -19,6 +21,7 @@ export default function ProductoDetalleScreen() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { agregarDeseado, comprarDeseado, saldo } = useContext(AppContext);
 
   const loadProduct = useCallback(async () => {
     setLoading(true);
@@ -62,6 +65,29 @@ export default function ProductoDetalleScreen() {
     );
   }
 
+  const compra = {
+    id: product.id,
+    titulo: product.title,
+    imagen: product.thumbnail,
+    precioUsd: product.price,
+    precioQuetzales: product.price * USD_TO_GTQ,
+  };
+
+  const guardarDeseado = () => {
+    const added = agregarDeseado(compra);
+    Alert.alert(added ? "Guardado" : "Ya existe", added ? "El articulo se agrego a tus compras deseadas." : "Este articulo ya esta en tu lista.");
+  };
+
+  const registrarCompra = () => {
+    const purchased = comprarDeseado(compra);
+    Alert.alert(
+      purchased ? "Compra registrada" : "Saldo insuficiente",
+      purchased
+        ? `Se registraron Q ${compra.precioQuetzales.toFixed(2)} como gasto.`
+        : `Necesitas Q ${compra.precioQuetzales.toFixed(2)} y tienes Q ${saldo.toFixed(2)}.`
+    );
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Image source={{ uri: product.images[0] ?? product.thumbnail }} style={styles.heroImage} />
@@ -70,6 +96,7 @@ export default function ProductoDetalleScreen() {
         <Text style={styles.title}>{product.title}</Text>
         {product.brand ? <Text style={styles.brand}>{product.brand}</Text> : null}
         <Text style={styles.price}>USD {product.price.toFixed(2)}</Text>
+        <Text style={styles.quetzales}>Equivale a Q {compra.precioQuetzales.toFixed(2)}</Text>
         <Text style={styles.description}>{product.description}</Text>
 
         <View style={styles.metrics}>
@@ -77,6 +104,13 @@ export default function ProductoDetalleScreen() {
           <Metric icon="cube-outline" label="Disponibles" value={`${product.stock}`} />
           <Metric icon="pricetag-outline" label="Descuento" value={`${product.discountPercentage}%`} />
         </View>
+
+        <Pressable onPress={guardarDeseado} style={styles.desiredButton}>
+          <Text style={styles.desiredButtonText}>Agregar a compras deseadas</Text>
+        </Pressable>
+        <Pressable onPress={registrarCompra} style={styles.buyButton}>
+          <Text style={styles.buyButtonText}>Registrar compra como gasto</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -105,9 +139,14 @@ const styles = StyleSheet.create({
   title: { color: "#0F172A", fontSize: 26, fontWeight: "bold", marginTop: 5 },
   brand: { color: "#64748B", fontSize: 15, marginTop: 5 },
   price: { color: "#15803D", fontSize: 25, fontWeight: "bold", marginTop: 16 },
+  quetzales: { color: "#475569", fontSize: 15, fontWeight: "bold", marginTop: 4 },
   description: { color: "#334155", fontSize: 16, lineHeight: 24, marginTop: 18 },
   metrics: { borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 22, paddingTop: 18 },
   metric: { alignItems: "center", flex: 1 },
   metricLabel: { color: "#64748B", fontSize: 12, marginTop: 5, textAlign: "center" },
   metricValue: { color: "#0F172A", fontSize: 13, fontWeight: "bold", marginTop: 2, textAlign: "center" },
+  desiredButton: { alignItems: "center", borderColor: "#2563EB", borderRadius: 10, borderWidth: 1, marginTop: 22, padding: 14 },
+  desiredButtonText: { color: "#2563EB", fontWeight: "bold" },
+  buyButton: { alignItems: "center", backgroundColor: "#15803D", borderRadius: 10, marginTop: 10, padding: 14 },
+  buyButtonText: { color: "#FFFFFF", fontWeight: "bold" },
 });

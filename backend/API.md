@@ -20,6 +20,11 @@ php artisan serve
 
 La base local usa SQLite (`database/database.sqlite`).
 
+## Conectar la app Expo
+
+La pantalla de acceso de la app usa esta API. Copia el archivo `.env.example` de la raiz del proyecto como `.env`.
+Para el navegador usa `http://127.0.0.1:8000/api`. Para Expo Go usa la IP local de tu PC, por ejemplo `http://192.168.1.20:8000/api`, y ejecuta Laravel con `php artisan serve --host=0.0.0.0`.
+
 ## Prueba en Postman
 
 Importa [postman/Control-Gastos.postman_collection.json](postman/Control-Gastos.postman_collection.json). Ejecuta las solicitudes en este orden:

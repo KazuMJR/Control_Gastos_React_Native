@@ -1,7 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-const TOKEN_KEY = "dummyjson_access_token";
+const TOKEN_KEY = "dummyjson_catalog_token";
+const CATALOG_USERNAME = "emilys";
+const CATALOG_PASSWORD = "emilyspass";
 
 export type Product = {
   id: number;
@@ -40,7 +42,7 @@ externalApi.interceptors.request.use(async (config) => {
   return config;
 });
 
-export async function loginToExternalApi(username: string, password: string) {
+async function loginToExternalApi(username: string, password: string) {
   const { data } = await externalApi.post<AuthResponse>("/auth/login", {
     username,
     password,
@@ -50,12 +52,37 @@ export async function loginToExternalApi(username: string, password: string) {
   await AsyncStorage.setItem(TOKEN_KEY, data.accessToken);
 }
 
+// DummyJSON protects this catalog endpoint. The integration authenticates once,
+// then Axios sends its external token on every later catalog request.
+async function ensureCatalogSession() {
+  const token = await AsyncStorage.getItem(TOKEN_KEY);
+
+  if (!token) {
+    await loginToExternalApi(CATALOG_USERNAME, CATALOG_PASSWORD);
+  }
+}
+
 export async function getExternalProducts() {
-  const { data } = await externalApi.get<ProductsResponse>("/auth/products?limit=100");
-  return data.products;
+  await ensureCatalogSession();
+
+  try {
+    const { data } = await externalApi.get<ProductsResponse>("/auth/products?limit=0");
+    return data.products;
+  } catch (error) {
+    // A saved external token can expire between app sessions; renew it once.
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      await AsyncStorage.removeItem(TOKEN_KEY);
+      await ensureCatalogSession();
+      const { data } = await externalApi.get<ProductsResponse>("/auth/products?limit=0");
+      return data.products;
+    }
+
+    throw error;
+  }
 }
 
 export async function getExternalProduct(id: string) {
+  await ensureCatalogSession();
   const { data } = await externalApi.get<Product>(`/auth/products/${id}`);
   return data;
 }

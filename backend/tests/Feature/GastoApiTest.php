@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Categoria;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class GastoApiTest extends TestCase
@@ -44,5 +45,25 @@ class GastoApiTest extends TestCase
         $this->actingAs($user, 'sanctum')->getJson('/api/gastos')
             ->assertOk()
             ->assertJsonPath('data.0.descripcion', 'Almuerzo');
+    }
+
+    public function test_login_is_blocked_after_five_attempts_per_minute(): void
+    {
+        $user = User::factory()->create(['password' => 'password123']);
+        RateLimiter::clear('login:127.0.0.1');
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $this->postJson('/api/auth/login', [
+                'email' => $user->email,
+                'password' => 'password123',
+                'device_name' => 'Pruebas',
+            ])->assertOk();
+        }
+
+        $this->postJson('/api/auth/login', [
+            'email' => $user->email,
+            'password' => 'password123',
+            'device_name' => 'Pruebas',
+        ])->assertStatus(429);
     }
 }

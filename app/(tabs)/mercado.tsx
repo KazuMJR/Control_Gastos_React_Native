@@ -7,8 +7,6 @@ import {
   Alert,
   FlatList,
   Image,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -18,12 +16,8 @@ import {
 
 import {
   getExternalProducts,
-  loginToExternalApi,
   Product,
 } from "../../services/external-api";
-
-const DEMO_USERNAME = "emilys";
-const DEMO_PASSWORD = "emilyspass";
 
 function messageFromError(error: unknown) {
   if (isAxiosError(error)) {
@@ -34,12 +28,8 @@ function messageFromError(error: unknown) {
 }
 
 export default function MercadoScreen() {
-  const [username, setUsername] = useState(DEMO_USERNAME);
-  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loggingIn, setLoggingIn] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
   const [search, setSearch] = useState("");
 
   const filteredProducts = useMemo(
@@ -62,81 +52,16 @@ export default function MercadoScreen() {
     }
   };
 
-  const login = async () => {
-    if (!username.trim() || !password) {
-      Alert.alert("Datos requeridos", "Ingresa usuario y contraseña.");
-      return;
-    }
-
-    setLoggingIn(true);
-
-    try {
-      await loginToExternalApi(username.trim(), password);
-      setAuthenticated(true);
-    } catch (error) {
-      Alert.alert("Inicio de sesión fallido", messageFromError(error));
-    } finally {
-      setLoggingIn(false);
-    }
-  };
-
   useEffect(() => {
-    if (authenticated) {
-      loadProducts();
-    }
-  }, [authenticated]);
-
-  if (!authenticated) {
-    return (
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.loginContainer}
-      >
-        <View style={styles.loginCard}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="cart-outline" size={42} color="#2563EB" />
-          </View>
-          <Text style={styles.title}>Mercado internacional</Text>
-          <Text style={styles.description}>
-            Inicia sesión en la API externa para consultar productos y precios de referencia.
-          </Text>
-
-          <TextInput
-            autoCapitalize="none"
-            autoCorrect={false}
-            onChangeText={setUsername}
-            placeholder="Usuario"
-            style={styles.input}
-            value={username}
-          />
-          <TextInput
-            onChangeText={setPassword}
-            placeholder="Contraseña"
-            secureTextEntry
-            style={styles.input}
-            value={password}
-          />
-          <Text style={styles.hint}>
-            Credenciales de demostración precargadas: emilys / emilyspass
-          </Text>
-          <Pressable disabled={loggingIn} onPress={login} style={styles.primaryButton}>
-            {loggingIn ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Obtener token y consultar</Text>
-            )}
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
-    );
-  }
+    loadProducts();
+  }, []);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>Productos externos</Text>
-          <Text style={styles.connected}>Conectado con token Bearer</Text>
+          <Text style={styles.title}>Catalogo de compras</Text>
+          <Text style={styles.connected}>Productos e imagenes desde DummyJSON</Text>
         </View>
         <Pressable accessibilityLabel="Actualizar productos" onPress={loadProducts} style={styles.refreshButton}>
           <Ionicons name="refresh" size={22} color="#2563EB" />
@@ -186,15 +111,7 @@ export default function MercadoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F4F6F8", padding: 16 },
-  loginContainer: { flex: 1, backgroundColor: "#F4F6F8", justifyContent: "center", padding: 20 },
-  loginCard: { backgroundColor: "#FFFFFF", borderRadius: 16, elevation: 3, padding: 24 },
-  iconCircle: { alignItems: "center", backgroundColor: "#DBEAFE", borderRadius: 40, height: 80, justifyContent: "center", marginBottom: 18, width: 80 },
   title: { color: "#1E3A8A", fontSize: 24, fontWeight: "bold" },
-  description: { color: "#475569", fontSize: 15, lineHeight: 21, marginBottom: 20, marginTop: 8 },
-  input: { backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, fontSize: 16, marginBottom: 12, padding: 14 },
-  hint: { color: "#64748B", fontSize: 12, lineHeight: 17, marginBottom: 18 },
-  primaryButton: { alignItems: "center", backgroundColor: "#2563EB", borderRadius: 10, minHeight: 50, justifyContent: "center", padding: 14 },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "bold" },
   header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 16, marginTop: 4 },
   connected: { color: "#15803D", fontSize: 13, marginTop: 3 },
   refreshButton: { backgroundColor: "#DBEAFE", borderRadius: 22, padding: 11 },
