@@ -34,6 +34,9 @@ function messageFromError(error: unknown) {
 }
 
 export default function MercadoScreen() {
+  // Limita los intentos de acceso al catalogo y aplica un bloqueo temporal.
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const LOCK_DURATION_MS = 3 * 60 * 1000;
   const [username, setUsername] = useState(DEMO_USERNAME);
   const [password, setPassword] = useState(DEMO_PASSWORD);
   const [products, setProducts] = useState<Product[]>([]);
@@ -41,6 +44,34 @@ export default function MercadoScreen() {
   const [loggingIn, setLoggingIn] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [search, setSearch] = useState("");
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockUntil, setLockUntil] = useState<number | null>(null);
+  const [remainingLockMs, setRemainingLockMs] = useState(0);
+
+  // El boton y el formulario se desactivan mientras el bloqueo siga vigente.
+  const isLocked = lockUntil !== null && remainingLockMs > 0;
+
+  useEffect(() => {
+    if (!lockUntil) {
+      return;
+    }
+
+    // Actualiza el contador visible cada segundo y libera el acceso al terminar.
+    const updateRemainingTime = () => {
+      const remaining = Math.max(0, lockUntil - Date.now());
+      setRemainingLockMs(remaining);
+
+      if (remaining === 0) {
+        setLockUntil(null);
+        setFailedAttempts(0);
+      }
+    };
+
+    updateRemainingTime();
+    const timer = setInterval(updateRemainingTime, 1000);
+
+    return () => clearInterval(timer);
+  }, [lockUntil]);
 
   const filteredProducts = useMemo(
     () =>
@@ -63,6 +94,10 @@ export default function MercadoScreen() {
   };
 
   const loginToCatalog = async () => {
+    if (isLocked) {
+      return;
+    }
+
     if (!username.trim() || !password) {
       Alert.alert("Datos requeridos", "Ingresa usuario y contrasena.");
       return;
@@ -73,7 +108,21 @@ export default function MercadoScreen() {
       // This is the required external API authentication: credentials -> token -> catalog requests.
       await loginToExternalApi(username.trim(), password);
       setAuthenticated(true);
+      setFailedAttempts(0);
     } catch (error) {
+      const nextFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(nextFailedAttempts);
+
+      // El quinto fallo informa al usuario y comienza los tres minutos de espera.
+      if (nextFailedAttempts >= MAX_LOGIN_ATTEMPTS) {
+        setLockUntil(Date.now() + LOCK_DURATION_MS);
+        Alert.alert(
+          "Acceso bloqueado",
+          "Ya utilizaste tus 5 intentos. Espera 3 minutos antes de volver a intentarlo."
+        );
+        return;
+      }
+
       Alert.alert("Acceso al catalogo denegado", messageFromError(error));
     } finally {
       setLoggingIn(false);
@@ -96,8 +145,13 @@ export default function MercadoScreen() {
           <TextInput autoCapitalize="none" onChangeText={setUsername} placeholder="Usuario externo" style={styles.input} value={username} />
           <TextInput onChangeText={setPassword} placeholder="Contrasena externa" secureTextEntry style={styles.input} value={password} />
           <Text style={styles.hint}>Demo: emilys / emilyspass</Text>
-          <Pressable disabled={loggingIn} onPress={loginToCatalog} style={styles.primaryButton}>
-            {loggingIn ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Obtener token y ver catalogo</Text>}
+          {isLocked ? (
+            <Text style={styles.lockMessage}>
+              Acceso bloqueado. Podrás intentarlo de nuevo en {Math.ceil(remainingLockMs / 1000)} segundos.
+            </Text>
+          ) : null}
+          <Pressable disabled={loggingIn || isLocked} onPress={loginToCatalog} style={styles.primaryButton}>
+            {loggingIn ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>{isLocked ? "Acceso bloqueado" : "Obtener token y ver catalogo"}</Text>}
           </Pressable>
         </View>
       </KeyboardAvoidingView>
@@ -165,6 +219,7 @@ const styles = StyleSheet.create({
   description: { color: "#475569", lineHeight: 21, marginBottom: 18, marginTop: 8 },
   input: { backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, marginBottom: 12, padding: 14 },
   hint: { color: "#64748B", fontSize: 12, marginBottom: 16 },
+  lockMessage: { color: "#B45309", fontSize: 13, marginBottom: 12, textAlign: "center" },
   primaryButton: { alignItems: "center", backgroundColor: "#2563EB", borderRadius: 10, minHeight: 50, justifyContent: "center", padding: 14 },
   primaryButtonText: { color: "#FFFFFF", fontWeight: "bold" },
   header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 16, marginTop: 4 },

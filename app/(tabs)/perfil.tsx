@@ -1,4 +1,5 @@
 import React, { useContext, useState } from "react";
+import { router } from "expo-router";
 import {
   View,
   Text,
@@ -19,26 +20,41 @@ export default function PerfilScreen() {
     setNombre,
     setCorreo,
     restablecerAplicacion,
+    saldo,
+    actualizarSaldo,
   } = useContext(AppContext);
 
   const [notificaciones, setNotificaciones] = useState(true);
 
   const [nuevoNombre, setNuevoNombre] = useState(nombre);
   const [nuevoCorreo, setNuevoCorreo] = useState(correo);
+  const [nuevoSaldo, setNuevoSaldo] = useState(saldo.toFixed(2));
 
   const guardarPerfil = () => {
+    const saldoNumero = Number(nuevoSaldo.replace(",", "."));
+
     if (nuevoNombre.trim() === "" || nuevoCorreo.trim() === "") {
-      Alert.alert("Error", "Complete todos los campos.");
+      Alert.alert("Error", "Complete nombre y correo.");
+      return;
+    }
+
+    if (!actualizarSaldo(saldoNumero)) {
+      Alert.alert("Saldo no valido", "Ingresa un monto igual o mayor que cero.");
       return;
     }
 
     setNombre(nuevoNombre);
     setCorreo(nuevoCorreo);
 
-    Alert.alert(
-      "Perfil actualizado",
-      "Los datos fueron guardados correctamente."
-    );
+    // Confirma que los datos personales y el saldo fueron actualizados.
+    router.push({
+      pathname: "/resultado",
+      params: {
+        title: "Perfil actualizado",
+        message: "Tus datos personales y el saldo disponible fueron guardados correctamente.",
+        returnTo: "/(tabs)/perfil",
+      },
+    });
   };
 
   const confirmarRestablecer = () => {
@@ -58,11 +74,17 @@ export default function PerfilScreen() {
 
             setNuevoNombre("Jason");
             setNuevoCorreo("jason@email.com");
+            setNuevoSaldo("2500.00");
 
-            Alert.alert(
-              "Éxito",
-              "La aplicación fue restablecida correctamente."
-            );
+            // Informa el resultado despues de confirmar el restablecimiento.
+            router.push({
+              pathname: "/resultado",
+              params: {
+                title: "Aplicación restablecida",
+                message: "Se borraron tus datos y se restauraron los valores iniciales.",
+                returnTo: "/(tabs)/perfil",
+              },
+            });
           },
         },
       ]
@@ -85,6 +107,14 @@ export default function PerfilScreen() {
         placeholder="Nombre"
         value={nuevoNombre}
         onChangeText={setNuevoNombre}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Saldo disponible en quetzales"
+        keyboardType="decimal-pad"
+        value={nuevoSaldo}
+        onChangeText={setNuevoSaldo}
       />
 
       <TextInput

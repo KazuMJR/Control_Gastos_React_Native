@@ -47,17 +47,15 @@ export default function NuevoGastoScreen() {
     setDescripcion("");
     setMonto("");
 
-    // Mostrar mensaje y regresar al inicio
-    Alert.alert(
-      "Éxito",
-      "El gasto fue registrado correctamente.",
-      [
-        {
-          text: "Aceptar",
-          onPress: () => router.replace("/(tabs)"),
-        },
-      ]
-    );
+    // Muestra el detalle de la operacion antes de volver al inicio.
+    router.push({
+      pathname: "/resultado",
+      params: {
+        title: "Gasto registrado",
+        message: `Se guardó ${descripcion} por Q ${montoNumero.toFixed(2)} y se actualizó tu saldo.`,
+        returnTo: "/(tabs)",
+      },
+    });
   };
 
   return (

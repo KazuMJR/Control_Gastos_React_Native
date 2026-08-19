@@ -43,6 +43,16 @@ export function AppProvider({ children }: any) {
     return true;
   }
 
+  function actualizarSaldo(nuevoSaldo: number) {
+    if (!Number.isFinite(nuevoSaldo) || nuevoSaldo < 0) {
+      return false;
+    }
+
+    // El usuario define su saldo inicial o disponible; las compras usan este valor actualizado.
+    setSaldo(nuevoSaldo);
+    return true;
+  }
+
   function agregarDeseado(compra: CompraDeseada) {
     if (deseados.some((item) => item.id === compra.id)) {
       return false;
@@ -91,6 +101,7 @@ export function AppProvider({ children }: any) {
         deseados,
         totalDeseados,
         agregarGasto,
+        actualizarSaldo,
         agregarDeseado,
         eliminarDeseado,
         comprarDeseado,

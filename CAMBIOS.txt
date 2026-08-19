@@ -1,0 +1,19 @@
+CAMBIOS REALIZADOS
+
+- Se agrego un limite de cinco intentos fallidos para acceder al catalogo.
+- Al llegar al quinto intento fallido, el acceso se bloquea durante tres minutos.
+- La pantalla muestra el tiempo restante del bloqueo.
+- Se creo una pantalla de resultado para confirmar las operaciones realizadas.
+- Se agregaron confirmaciones al guardar gastos.
+- Se agregaron confirmaciones al actualizar el perfil.
+- Se agrego una confirmacion al restablecer la aplicacion.
+- Se agregaron confirmaciones al guardar productos deseados.
+- Se agregaron confirmaciones al registrar compras.
+- Se registraron las nuevas rutas de navegacion en Expo Router.
+
+VALIDACION
+
+- npm run lint
+- npx tsc --noEmit
+
+Ambas validaciones finalizaron correctamente.

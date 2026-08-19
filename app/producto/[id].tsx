@@ -75,17 +75,38 @@ export default function ProductoDetalleScreen() {
 
   const guardarDeseado = () => {
     const added = agregarDeseado(compra);
-    Alert.alert(added ? "Guardado" : "Ya existe", added ? "El articulo se agrego a tus compras deseadas." : "Este articulo ya esta en tu lista.");
+    if (!added) {
+      Alert.alert("Ya existe", "Este articulo ya esta en tu lista.");
+      return;
+    }
+
+    // Confirma que el producto quedo guardado en la lista de deseados.
+    router.push({
+      pathname: "/resultado",
+      params: {
+        title: "Producto guardado",
+        message: `${compra.titulo} se agregó a tus compras deseadas.`,
+        returnTo: `/producto/${compra.id}`,
+      },
+    });
   };
 
   const registrarCompra = () => {
     const purchased = comprarDeseado(compra);
-    Alert.alert(
-      purchased ? "Compra registrada" : "Saldo insuficiente",
-      purchased
-        ? `Se registraron Q ${compra.precioQuetzales.toFixed(2)} como gasto.`
-        : `Necesitas Q ${compra.precioQuetzales.toFixed(2)} y tienes Q ${saldo.toFixed(2)}.`
-    );
+    if (!purchased) {
+      Alert.alert("Saldo insuficiente", `Necesitas Q ${compra.precioQuetzales.toFixed(2)} y tienes Q ${saldo.toFixed(2)}.`);
+      return;
+    }
+
+    // Confirma la compra y el descuento aplicado al saldo.
+    router.push({
+      pathname: "/resultado",
+      params: {
+        title: "Compra registrada",
+        message: `Se registraron Q ${compra.precioQuetzales.toFixed(2)} como gasto y se actualizó tu saldo.`,
+        returnTo: "/(tabs)",
+      },
+    });
   };
 
   return (
