@@ -7,6 +7,8 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -16,8 +18,12 @@ import {
 
 import {
   getExternalProducts,
+  loginToExternalApi,
   Product,
 } from "../../services/external-api";
+
+const DEMO_USERNAME = "emilys";
+const DEMO_PASSWORD = "emilyspass";
 
 function messageFromError(error: unknown) {
   if (isAxiosError(error)) {
@@ -28,8 +34,12 @@ function messageFromError(error: unknown) {
 }
 
 export default function MercadoScreen() {
+  const [username, setUsername] = useState(DEMO_USERNAME);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
   const [search, setSearch] = useState("");
 
   const filteredProducts = useMemo(
@@ -52,9 +62,47 @@ export default function MercadoScreen() {
     }
   };
 
+  const loginToCatalog = async () => {
+    if (!username.trim() || !password) {
+      Alert.alert("Datos requeridos", "Ingresa usuario y contrasena.");
+      return;
+    }
+
+    setLoggingIn(true);
+    try {
+      // This is the required external API authentication: credentials -> token -> catalog requests.
+      await loginToExternalApi(username.trim(), password);
+      setAuthenticated(true);
+    } catch (error) {
+      Alert.alert("Acceso al catalogo denegado", messageFromError(error));
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
   useEffect(() => {
-    loadProducts();
-  }, []);
+    if (authenticated) {
+      loadProducts();
+    }
+  }, [authenticated]);
+
+  if (!authenticated) {
+    return (
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.loginContainer}>
+        <View style={styles.loginCard}>
+          <Ionicons name="cart-outline" size={42} color="#2563EB" />
+          <Text style={styles.title}>Acceso al catalogo</Text>
+          <Text style={styles.description}>Autenticate con la API externa para obtener su token y consultar los productos.</Text>
+          <TextInput autoCapitalize="none" onChangeText={setUsername} placeholder="Usuario externo" style={styles.input} value={username} />
+          <TextInput onChangeText={setPassword} placeholder="Contrasena externa" secureTextEntry style={styles.input} value={password} />
+          <Text style={styles.hint}>Demo: emilys / emilyspass</Text>
+          <Pressable disabled={loggingIn} onPress={loginToCatalog} style={styles.primaryButton}>
+            {loggingIn ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryButtonText}>Obtener token y ver catalogo</Text>}
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -111,7 +159,14 @@ export default function MercadoScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F4F6F8", padding: 16 },
+  loginContainer: { flex: 1, backgroundColor: "#F4F6F8", justifyContent: "center", padding: 20 },
+  loginCard: { backgroundColor: "#FFFFFF", borderRadius: 16, elevation: 3, padding: 24 },
   title: { color: "#1E3A8A", fontSize: 24, fontWeight: "bold" },
+  description: { color: "#475569", lineHeight: 21, marginBottom: 18, marginTop: 8 },
+  input: { backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, marginBottom: 12, padding: 14 },
+  hint: { color: "#64748B", fontSize: 12, marginBottom: 16 },
+  primaryButton: { alignItems: "center", backgroundColor: "#2563EB", borderRadius: 10, minHeight: 50, justifyContent: "center", padding: 14 },
+  primaryButtonText: { color: "#FFFFFF", fontWeight: "bold" },
   header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 16, marginTop: 4 },
   connected: { color: "#15803D", fontSize: 13, marginTop: 3 },
   refreshButton: { backgroundColor: "#DBEAFE", borderRadius: 22, padding: 11 },

@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { isAxiosError } from "axios";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useContext, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -90,6 +90,10 @@ export default function ProductoDetalleScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Ionicons name="arrow-back" size={20} color="#2563EB" />
+        <Text style={styles.backText}>Volver al catalogo</Text>
+      </Pressable>
       <Image source={{ uri: product.images[0] ?? product.thumbnail }} style={styles.heroImage} />
       <View style={styles.card}>
         <Text style={styles.category}>{product.category}</Text>
@@ -133,6 +137,8 @@ const styles = StyleSheet.create({
   error: { color: "#991B1B", fontSize: 16, marginTop: 12, textAlign: "center" },
   retryButton: { backgroundColor: "#2563EB", borderRadius: 8, marginTop: 18, paddingHorizontal: 18, paddingVertical: 11 },
   retryText: { color: "#FFFFFF", fontWeight: "bold" },
+  backButton: { alignItems: "center", alignSelf: "flex-start", flexDirection: "row", marginBottom: 12, paddingVertical: 5 },
+  backText: { color: "#2563EB", fontWeight: "bold", marginLeft: 6 },
   heroImage: { backgroundColor: "#FFFFFF", borderRadius: 14, height: 260, resizeMode: "cover", width: "100%" },
   card: { backgroundColor: "#FFFFFF", borderRadius: 14, elevation: 2, marginTop: 14, padding: 20 },
   category: { color: "#2563EB", fontSize: 14, fontWeight: "bold", textTransform: "capitalize" },

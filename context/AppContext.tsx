@@ -1,9 +1,8 @@
-import React, { createContext, useEffect, useMemo, useState } from "react";
-
-import { AuthUser, login, logout, register, restoreSession } from "../services/auth-api";
+import React, { createContext, useMemo, useState } from "react";
 
 export const AppContext = createContext<any>(null);
 
+// Tipo de cambio de referencia para comparar precios del catalogo con el saldo en quetzales.
 export const USD_TO_GTQ = 7.75;
 
 export type CompraDeseada = {
@@ -23,18 +22,9 @@ export function AppProvider({ children }: any) {
 
   const [gastos, setGastos] = useState<any[]>([]);
   const [deseados, setDeseados] = useState<CompraDeseada[]>([]);
-  const [usuario, setUsuario] = useState<AuthUser | null>(null);
-  const [cargandoSesion, setCargandoSesion] = useState(true);
-
-  // Restores the Sanctum session so the app stays locked after a refresh.
-  useEffect(() => {
-    restoreSession()
-      .then(setUsuario)
-      .catch(() => setUsuario(null))
-      .finally(() => setCargandoSesion(false));
-  }, []);
 
   function agregarGasto(descripcion: string, monto: number) {
+    // No permite registrar compras cuyo precio supera el saldo disponible.
     if (monto > saldo) {
       return false;
     }
@@ -67,6 +57,7 @@ export function AppProvider({ children }: any) {
   }
 
   function comprarDeseado(compra: CompraDeseada) {
+    // Al comprar, el articulo pasa de deseados al historial local de gastos.
     const comprado = agregarGasto(`Compra: ${compra.titulo}`, compra.precioQuetzales);
 
     if (comprado) {
@@ -85,27 +76,10 @@ export function AppProvider({ children }: any) {
   }
 
   const totalDeseados = useMemo(
+    // Suma de la lista para indicar al usuario si todo su plan de compras alcanza.
     () => deseados.reduce((total, compra) => total + compra.precioQuetzales, 0),
     [deseados]
   );
-
-  async function iniciarSesion(email: string, password: string) {
-    const user = await login(email, password);
-    setUsuario(user);
-  }
-
-  async function crearCuenta(name: string, email: string, password: string) {
-    const user = await register(name, email, password);
-    setUsuario(user);
-    setNombre(user.name);
-    setCorreo(user.email);
-  }
-
-  async function cerrarSesion() {
-    await logout();
-    setUsuario(null);
-    setDeseados([]);
-  }
 
   return (
     <AppContext.Provider
@@ -116,16 +90,11 @@ export function AppProvider({ children }: any) {
         gastos,
         deseados,
         totalDeseados,
-        usuario,
-        cargandoSesion,
         agregarGasto,
         agregarDeseado,
         eliminarDeseado,
         comprarDeseado,
         restablecerAplicacion,
-        iniciarSesion,
-        crearCuenta,
-        cerrarSesion,
         setNombre,
         setCorreo,
       }}

@@ -33,6 +33,7 @@ export const externalApi = axios.create({
 });
 
 externalApi.interceptors.request.use(async (config) => {
+  // Todas las consultas posteriores incluyen el token recibido en el login externo.
   const token = await AsyncStorage.getItem(TOKEN_KEY);
 
   if (token) {
@@ -42,7 +43,7 @@ externalApi.interceptors.request.use(async (config) => {
   return config;
 });
 
-async function loginToExternalApi(username: string, password: string) {
+export async function loginToExternalApi(username: string, password: string) {
   const { data } = await externalApi.post<AuthResponse>("/auth/login", {
     username,
     password,
@@ -52,8 +53,7 @@ async function loginToExternalApi(username: string, password: string) {
   await AsyncStorage.setItem(TOKEN_KEY, data.accessToken);
 }
 
-// DummyJSON protects this catalog endpoint. The integration authenticates once,
-// then Axios sends its external token on every later catalog request.
+// DummyJSON protege el catalogo: primero se autentica y luego Axios envia el token.
 async function ensureCatalogSession() {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
 
@@ -69,7 +69,7 @@ export async function getExternalProducts() {
     const { data } = await externalApi.get<ProductsResponse>("/auth/products?limit=0");
     return data.products;
   } catch (error) {
-    // A saved external token can expire between app sessions; renew it once.
+    // Si el token externo vence, se renueva una vez y se repite la consulta.
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       await AsyncStorage.removeItem(TOKEN_KEY);
       await ensureCatalogSession();

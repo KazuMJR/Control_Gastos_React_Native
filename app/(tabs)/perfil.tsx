@@ -19,7 +19,6 @@ export default function PerfilScreen() {
     setNombre,
     setCorreo,
     restablecerAplicacion,
-    cerrarSesion,
   } = useContext(AppContext);
 
   const [notificaciones, setNotificaciones] = useState(true);
@@ -125,12 +124,6 @@ export default function PerfilScreen() {
         </Text>
       </Pressable>
 
-      <Pressable
-        style={styles.logoutButton}
-        onPress={cerrarSesion}
-      >
-        <Text style={styles.buttonText}>Cerrar SesiÃ³n</Text>
-      </Pressable>
     </View>
   );
 }
@@ -203,14 +196,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  logoutButton: {
-    width: "100%",
-    backgroundColor: "#475569",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginTop: 15,
-  },
 
   buttonText: {
     color: "#FFFFFF",
