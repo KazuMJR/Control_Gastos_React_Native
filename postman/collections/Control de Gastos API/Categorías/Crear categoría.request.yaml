@@ -1,0 +1,19 @@
+$kind: http-request
+url: "{{baseUrl}}/api/categorias"
+method: POST
+headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "Alimentación",
+      "color": "#F97316"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.collectionVariables.set('categoriaId', pm.response.json().id);
+    language: text/javascript
+order: 1000

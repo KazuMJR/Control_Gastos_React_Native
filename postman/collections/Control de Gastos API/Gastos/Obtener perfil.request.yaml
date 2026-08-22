@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{baseUrl}}/api/usuario"
+method: GET
+headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+order: 3000

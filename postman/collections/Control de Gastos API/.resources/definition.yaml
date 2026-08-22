@@ -1,0 +1,7 @@
+$kind: collection
+description: Colección local para probar autenticación con Sanctum, categorías y gastos.
+variables:
+  baseUrl: http://127.0.0.1:8000
+  token: ""
+  categoriaId: "1"
+  gastoId: "1"

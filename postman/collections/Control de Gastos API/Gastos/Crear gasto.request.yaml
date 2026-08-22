@@ -1,0 +1,22 @@
+$kind: http-request
+url: "{{baseUrl}}/api/gastos"
+method: POST
+headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "categoria_id": {{categoriaId}},
+      "descripcion": "Almuerzo",
+      "monto": 45.50,
+      "fecha_gasto": "2026-08-18",
+      "notas": "Prueba desde Postman"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.collectionVariables.set('gastoId', pm.response.json().id);
+    language: text/javascript
+order: 1000

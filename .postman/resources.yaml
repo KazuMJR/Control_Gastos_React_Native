@@ -1,0 +1,11 @@
+# Use this workspace to collaborate
+workspace:
+  id: b15ec7b1-f244-411e-85b6-cf42cda8d59e
+
+localResources:
+  collections:
+    - ../backend/postman/Control-Gastos.postman_collection.json
+
+cloudResources:
+  collections:
+    ../postman/collections/Control de Gastos API: d5a0db6a-b1ee-4391-a34a-60e1f84e0b45
