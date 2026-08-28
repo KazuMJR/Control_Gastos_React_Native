@@ -1,0 +1,23 @@
+$kind: http-request
+url: "{{baseUrl}}/api/gastos/{{gastoId}}"
+method: PATCH
+headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "descripcion": "Almuerzo actualizado",
+      "monto": 50.25,
+      "notas": "Actualizado desde Postman"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Gasto actualizado con 200', () => pm.response.to.have.status(200));
+      pm.expect(pm.response.json().descripcion).to.eql('Almuerzo actualizado');
+      pm.expect(Number(pm.response.json().monto)).to.eql(50.25);
+    language: text/javascript
+order: 4000

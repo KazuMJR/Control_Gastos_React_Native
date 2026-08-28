@@ -9,15 +9,22 @@ body:
   content: |-
     {
       "name": "Ana López",
-      "email": "ana@example.com",
-      "password": "password123",
-      "password_confirmation": "password123",
+      "email": "{{runEmail}}",
+      "password": "{{runPassword}}",
+      "password_confirmation": "{{runPassword}}",
       "device_name": "Postman"
     }
 scripts:
+  - type: beforeRequest
+    code: |-
+      const runSuffix = Date.now().toString();
+      pm.collectionVariables.set('runSuffix', runSuffix);
+      pm.collectionVariables.set('runEmail', `ana.${runSuffix}@example.com`);
+    language: text/javascript
   - type: afterResponse
     code: |-
+      pm.test('Registro devuelve 201 y token Passport', () => pm.response.to.have.status(201));
       const body = pm.response.json();
-      pm.collectionVariables.set('token', body.token);
+      pm.expect(body.token).to.be.a('string').and.not.empty;
     language: text/javascript
 order: 1000

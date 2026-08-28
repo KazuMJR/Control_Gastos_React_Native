@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/categorias/{{categoriaId}}"
+method: DELETE
+headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Categoría eliminada con 204', () => pm.response.to.have.status(204));
+      pm.expect(pm.response.text()).to.eql('');
+    language: text/javascript
+order: 1000

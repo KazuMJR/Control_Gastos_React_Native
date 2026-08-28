@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/gastos"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Ruta protegida devuelve 401 sin Bearer token', () => pm.response.to.have.status(401));
+      pm.expect(pm.response.json().message).to.eql('Unauthenticated.');
+    language: text/javascript
+order: 1000

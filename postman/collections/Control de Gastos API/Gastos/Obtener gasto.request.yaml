@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/gastos/{{gastoId}}"
+method: GET
+headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Gasto individual devuelve 200', () => pm.response.to.have.status(200));
+      pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('gastoId')));
+    language: text/javascript
+order: 3000

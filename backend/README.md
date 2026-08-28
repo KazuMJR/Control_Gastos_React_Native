@@ -1,58 +1,186 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# API Control de Gastos
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API REST desarrollada con Laravel 13 para registrar usuarios y administrar categorías y gastos. Laravel Passport funciona como servidor OAuth2 y valida los Bearer Tokens de las rutas protegidas.
 
-## About Laravel
+## Requisitos
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3 o superior con `openssl`, `pdo_sqlite`, `mbstring`, `curl` y `fileinfo`.
+- Composer.
+- SQLite.
+- Postman o Newman para ejecutar la colección.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Instalación desde un clon nuevo
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```powershell
+composer install
+Copy-Item .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Configura SQLite en `.env`:
 
-## Contributing
+```dotenv
+DB_CONNECTION=sqlite
+DB_DATABASE=C:\ruta\absoluta\al\proyecto\backend\database\database.sqlite
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Crea la base de datos si todavía no existe y ejecuta las migraciones:
 
-## Code of Conduct
+```powershell
+New-Item database\database.sqlite -ItemType File -Force
+php artisan migrate
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Configurar Passport
 
-## Security Vulnerabilities
+Genera las claves de firma OAuth y los clientes requeridos:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```powershell
+php artisan passport:keys
+php artisan passport:client --personal --name="Control Gastos API" --provider=users
+php artisan passport:client --password --name="Control Gastos Postman" --provider=users
+```
 
-## License
+El último comando muestra un Client ID y Client Secret. El secreto solo se muestra una vez; guárdalo en un Environment local de Postman y no lo agregues a Git.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+La integración está distribuida en:
+
+- `app/Models/User.php`: implementa `OAuthenticatable` y usa `HasApiTokens`.
+- `config/auth.php`: define el guard `api` con driver `passport`.
+- `app/Providers/AppServiceProvider.php`: habilita Password Grant.
+- `routes/api.php`: protege los recursos con `auth:api`.
+- `app/Http/Controllers/Api/AuthController.php`: emite y revoca tokens personales.
+
+## Ejecutar la API
+
+```powershell
+php artisan serve
+```
+
+URL predeterminada:
+
+```text
+http://127.0.0.1:8000
+```
+
+Todas las respuestas son JSON.
+
+## Autenticación
+
+### Registro
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Ana López",
+  "email": "ana@example.com",
+  "password": "password123",
+  "password_confirmation": "password123",
+  "device_name": "Postman"
+}
+```
+
+### Inicio de sesión
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "ana@example.com",
+  "password": "password123",
+  "device_name": "Postman"
+}
+```
+
+### Password Grant
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+```
+
+```text
+grant_type=password
+client_id={client-id}
+client_secret={client-secret}
+username=ana@example.com
+password=password123
+scope=
+```
+
+La respuesta incluye `access_token`, `refresh_token`, `expires_in` y `token_type`.
+
+### Consumir rutas protegidas
+
+```http
+Accept: application/json
+Authorization: Bearer {access-token}
+```
+
+Sin un token válido, Laravel responde con `401 Unauthorized`.
+
+## Endpoints
+
+| Método | Endpoint | Resultado esperado |
+|---|---|---|
+| POST | `/api/auth/register` | Usuario y token, estado `201` |
+| POST | `/api/auth/login` | Usuario y token, estado `200` |
+| POST | `/oauth/token` | Access/refresh token, estado `200` |
+| POST | `/api/auth/logout` | Revocación del token, estado `200` |
+| GET | `/api/usuario` | Perfil autenticado, estado `200` |
+| GET | `/api/categorias` | Lista de categorías, estado `200` |
+| POST | `/api/categorias` | Categoría creada, estado `201` |
+| GET | `/api/categorias/{categoria}` | Categoría solicitada, estado `200` |
+| PATCH | `/api/categorias/{categoria}` | Categoría actualizada, estado `200` |
+| DELETE | `/api/categorias/{categoria}` | Sin contenido, estado `204` |
+| GET | `/api/gastos` | Gastos del usuario, estado `200` |
+| POST | `/api/gastos` | Gasto creado, estado `201` |
+| GET | `/api/gastos/{gasto}` | Gasto propio, estado `200` |
+| PATCH | `/api/gastos/{gasto}` | Gasto actualizado, estado `200` |
+| DELETE | `/api/gastos/{gasto}` | Sin contenido, estado `204` |
+
+Las acciones sobre un gasto ajeno responden con `403 Forbidden`.
+
+## Postman y Newman
+
+Importa `postman/Control-Gastos.postman_collection.json`. Define `clientId` y `clientSecret` en un Environment local y ejecuta toda la colección.
+
+También puede ejecutarse desde la terminal:
+
+```powershell
+newman run "postman\Control-Gastos.postman_collection.json" `
+    -e "postman\Control-Gastos.local.postman_environment.json"
+```
+
+Resultado verificado: 15 peticiones y 15 aserciones, sin fallos.
+
+## Pruebas automatizadas
+
+```powershell
+php artisan test
+```
+
+La suite cubre:
+
+- Registro y emisión de Passport Tokens.
+- Rechazo de rutas sin autenticar.
+- CRUD completo de categorías.
+- CRUD completo de gastos del usuario.
+- Bloqueo de acceso a gastos ajenos.
+- Límite de cinco intentos de login por minuto.
+- Generación de tokens mediante Password Grant.
+
+Resultado verificado: 8 pruebas y 50 aserciones aprobadas.
+
+## Más documentación
+
+- [Referencia resumida de la API](API.md).
+- [Guía para ejecutar el proyecto y preparar evidencias](GUIA_EVIDENCIAS_PASSPORT.md).
+- [Laravel Passport 13](https://laravel.com/framework/docs/13.x/passport).

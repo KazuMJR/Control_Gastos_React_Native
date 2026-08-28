@@ -19,6 +19,7 @@
 /public/hot
 /public/storage
 /storage/*.key
+/postman/*.local.postman_environment.json
 /storage/pail
 /vendor
 _ide_helper.php

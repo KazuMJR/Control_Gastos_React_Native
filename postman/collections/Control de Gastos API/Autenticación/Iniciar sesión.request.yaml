@@ -8,14 +8,15 @@ body:
   type: text
   content: |-
     {
-      "email": "ana@example.com",
-      "password": "password123",
+      "email": "{{runEmail}}",
+      "password": "{{runPassword}}",
       "device_name": "Postman"
     }
 scripts:
   - type: afterResponse
     code: |-
+      pm.test('Login devuelve 200 y token Passport', () => pm.response.to.have.status(200));
       const body = pm.response.json();
-      pm.collectionVariables.set('token', body.token);
+      pm.expect(body.token).to.be.a('string').and.not.empty;
     language: text/javascript
 order: 2000

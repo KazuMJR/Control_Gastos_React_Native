@@ -46,7 +46,7 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()?->delete();
+        $request->user()->token()?->revoke();
 
         return response()->json(['message' => 'Sesión cerrada correctamente.']);
     }
@@ -54,7 +54,7 @@ class AuthController extends Controller
     private function tokenResponse(User $user, string $deviceName): array
     {
         return [
-            'token' => $user->createToken($deviceName)->plainTextToken,
+            'token' => $user->createToken($deviceName)->accessToken,
             'token_type' => 'Bearer',
             'user' => $user,
         ];

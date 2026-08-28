@@ -1,7 +1,13 @@
 $kind: collection
-description: Colección local para probar autenticación con Sanctum, categorías y gastos.
+name: Control de Gastos API
+description: Colección completa para comprobar credenciales y tokens de Laravel Passport, seguridad Bearer y CRUD de categorías y gastos.
 variables:
   baseUrl: http://127.0.0.1:8000
+  clientId: ""
+  clientSecret: ""
   token: ""
-  categoriaId: "1"
-  gastoId: "1"
+  runEmail: ""
+  runPassword: password123
+  runSuffix: ""
+  categoriaId: ""
+  gastoId: ""

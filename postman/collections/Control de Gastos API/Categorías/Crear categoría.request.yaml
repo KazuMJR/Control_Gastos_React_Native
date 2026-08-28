@@ -9,11 +9,15 @@ body:
   type: text
   content: |-
     {
-      "nombre": "Alimentación",
+      "nombre": "Prueba {{runSuffix}}",
       "color": "#F97316"
     }
 scripts:
   - type: afterResponse
-    code: pm.collectionVariables.set('categoriaId', pm.response.json().id);
+    code: |-
+      pm.test('Categoría creada con 201', () => pm.response.to.have.status(201));
+      const body = pm.response.json();
+      pm.expect(body.id).to.be.a('number');
+      pm.collectionVariables.set('categoriaId', body.id);
     language: text/javascript
 order: 1000
