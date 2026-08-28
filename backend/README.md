@@ -1,6 +1,6 @@
 # API Control de Gastos
 
-API REST desarrollada con Laravel 13 para registrar usuarios y administrar categorías y gastos. Laravel Passport funciona como servidor OAuth2 y valida los Bearer Tokens de las rutas protegidas.
+API REST desarrollada como actividad académica con Laravel 13 para registrar usuarios y administrar categorías y gastos. Laravel Passport funciona como servidor OAuth2 y valida los Bearer Tokens de las rutas protegidas.
 
 ## Requisitos
 
@@ -41,7 +41,7 @@ php artisan passport:client --personal --name="Control Gastos API" --provider=us
 php artisan passport:client --password --name="Control Gastos Postman" --provider=users
 ```
 
-El último comando muestra un Client ID y Client Secret. El secreto solo se muestra una vez; guárdalo en un Environment local de Postman y no lo agregues a Git.
+El último comando muestra un Client ID y Client Secret. El secreto solo se muestra una vez y debe mantenerse fuera de Git.
 
 La integración está distribuida en:
 
@@ -150,7 +150,7 @@ Las acciones sobre un gasto ajeno responden con `403 Forbidden`.
 
 ## Postman y Newman
 
-Importa `postman/Control-Gastos.postman_collection.json`. Define `clientId` y `clientSecret` en un Environment local y ejecuta toda la colección.
+Importa `postman/Control-Gastos.postman_collection.json` y `postman/Control-Gastos.postman_environment.example.json`. Completa `clientId` y `clientSecret`, selecciona el Environment y ejecuta toda la colección.
 
 También puede ejecutarse desde la terminal:
 
@@ -182,5 +182,8 @@ Resultado verificado: 8 pruebas y 50 aserciones aprobadas.
 ## Más documentación
 
 - [Referencia resumida de la API](API.md).
-- [Guía para ejecutar el proyecto y preparar evidencias](GUIA_EVIDENCIAS_PASSPORT.md).
 - [Laravel Passport 13](https://laravel.com/framework/docs/13.x/passport).
+
+## Nota académica
+
+La actividad incluye las migraciones, configuración, colección y plantilla de Postman necesarias para comprobar Passport. Cada instalación genera sus propias claves y credenciales mediante los comandos documentados anteriormente.

@@ -1,7 +1,5 @@
 # API Control de Gastos
 
-La guía paso a paso para ejecutar el proyecto y preparar las capturas de la tarea está en [GUIA_EVIDENCIAS_PASSPORT.md](GUIA_EVIDENCIAS_PASSPORT.md).
-
 Backend JSON creado con Laravel 13 y Laravel Passport. Los recursos CRUD se definen exclusivamente en `routes/api.php`; no contiene vistas Blade.
 
 ## Recursos y seguridad
@@ -24,7 +22,7 @@ La base local usa SQLite (`database/database.sqlite`). Passport crea las tablas 
 
 ## Cliente OAuth para Postman
 
-La colección solicita tokens mediante el endpoint estándar `POST /oauth/token`. En este equipo ya existe el Environment local `postman/Control-Gastos.local.postman_environment.json` con las credenciales necesarias; está excluido de Git y no debe compartirse. Impórtalo en Postman junto con la colección.
+La colección solicita tokens mediante el endpoint estándar `POST /oauth/token`. Para esta actividad se incluye la plantilla `postman/Control-Gastos.postman_environment.example.json`. Impórtala en Postman junto con la colección y completa las credenciales generadas localmente.
 
 Si trabajas en otro equipo o pierdes ese archivo, genera un cliente de contraseña nuevo una sola vez:
 
@@ -66,14 +64,3 @@ Importa [postman/Control-Gastos.postman_collection.json](postman/Control-Gastos.
 La ejecución completa contiene **15 peticiones y 15 pruebas de estado**, además de aserciones sobre IDs, tokens y datos actualizados. Todas deben finalizar sin errores.
 
 La colección usa `http://127.0.0.1:8000` como `baseUrl`; cámbialo si inicias el servidor en otro puerto.
-
-## Evidencias recomendadas
-
-1. `composer show laravel/passport` mostrando la versión instalada.
-2. `php artisan migrate:status` mostrando las migraciones `oauth_*` ejecutadas.
-3. Creación del cliente OAuth, ocultando el Client Secret en la captura final.
-4. Respuesta `200` de **Generar token OAuth**, ocultando los tokens.
-5. Respuesta `401` de **Rechazar petición sin token**.
-6. Respuestas `201`, `200`, `200` y `204` del CRUD.
-7. Resumen del Collection Runner con cero fallos.
-8. Resultado de `php artisan test` con toda la suite aprobada.

@@ -1,6 +1,6 @@
 # Control de Gastos
 
-Proyecto académico compuesto por una aplicación móvil Expo y una API REST en Laravel. El backend administra usuarios, categorías y gastos, y protege sus rutas mediante OAuth2 con Laravel Passport.
+Actividad académica compuesta por una aplicación móvil Expo y una API REST en Laravel. El backend administra usuarios, categorías y gastos, y protege sus rutas mediante OAuth2 con Laravel Passport.
 
 ## Tecnologías
 
@@ -121,17 +121,10 @@ Las pruebas cubren registro, generación de tokens, límites de login, rutas sin
 ## Documentación
 
 - [Referencia de la API](backend/API.md).
-- [Guía de ejecución y capturas de evidencia](backend/GUIA_EVIDENCIAS_PASSPORT.md).
 - [Documentación oficial de Laravel Passport 13](https://laravel.com/framework/docs/13.x/passport).
 
-## Seguridad
+## Credenciales de la actividad
 
-No deben publicarse ni adjuntarse al repositorio:
+El repositorio incluye plantillas y los comandos necesarios para generar las credenciales localmente. Después de clonar, cada equipo debe crear su `.env`, claves OAuth, base SQLite y cliente Passport.
 
-- `backend/.env`.
-- `backend/storage/oauth-private.key`.
-- `backend/storage/oauth-public.key` en repositorios públicos.
-- `backend/postman/*.local.postman_environment.json`.
-- Client Secret, access tokens o refresh tokens reales.
-
-Los archivos sensibles utilizados localmente están excluidos mediante `.gitignore`.
+El Environment `backend/postman/Control-Gastos.postman_environment.example.json` puede importarse en Postman y completarse con el Client ID y Client Secret generados localmente. Las credenciales reales permanecen excluidas mediante `.gitignore`.
