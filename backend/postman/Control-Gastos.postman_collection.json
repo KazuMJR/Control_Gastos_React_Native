@@ -9,6 +9,10 @@
     { "key": "clientId", "value": "" },
     { "key": "clientSecret", "value": "" },
     { "key": "token", "value": "" },
+    { "key": "limitedToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "readScopes", "value": "perfil.read categorias.read gastos.read" },
+    { "key": "fullScopes", "value": "perfil.read categorias.read categorias.write categorias.delete gastos.read gastos.write gastos.delete" },
     { "key": "runEmail", "value": "" },
     { "key": "runPassword", "value": "password123" },
     { "key": "runSuffix", "value": "" },
@@ -84,7 +88,7 @@
           ]
         },
         {
-          "name": "Generar token OAuth",
+          "name": "Generar token OAuth limitado",
           "request": {
             "method": "POST",
             "header": [
@@ -99,7 +103,7 @@
                 { "key": "client_secret", "value": "{{clientSecret}}", "type": "text" },
                 { "key": "username", "value": "{{runEmail}}", "type": "text" },
                 { "key": "password", "value": "{{runPassword}}", "type": "text" },
-                { "key": "scope", "value": "", "type": "text" }
+                { "key": "scope", "value": "{{readScopes}}", "type": "text" }
               ]
             },
             "url": "{{baseUrl}}/oauth/token"
@@ -109,12 +113,87 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('OAuth devuelve access_token y refresh_token', () => pm.response.to.have.status(200));",
+                  "pm.test('OAuth genera token limitado con vigencia de una hora', () => pm.response.to.have.status(200));",
                   "const body = pm.response.json();",
                   "pm.expect(body.access_token).to.be.a('string').and.not.empty;",
                   "pm.expect(body.refresh_token).to.be.a('string').and.not.empty;",
-                  "pm.expect(body.expires_in).to.be.a('number');",
-                  "pm.collectionVariables.set('token', body.access_token);"
+                  "pm.expect(body.expires_in).to.eql(3600);",
+                  "pm.collectionVariables.set('limitedToken', body.access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Generar token OAuth completo",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password", "type": "text" },
+                { "key": "client_id", "value": "{{clientId}}", "type": "text" },
+                { "key": "client_secret", "value": "{{clientSecret}}", "type": "text" },
+                { "key": "username", "value": "{{runEmail}}", "type": "text" },
+                { "key": "password", "value": "{{runPassword}}", "type": "text" },
+                { "key": "scope", "value": "{{fullScopes}}", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/oauth/token"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OAuth devuelve access_token y refresh_token con todos los scopes', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+                  "pm.expect(body.refresh_token).to.be.a('string').and.not.empty;",
+                  "pm.expect(body.expires_in).to.eql(3600);",
+                  "pm.collectionVariables.set('token', body.access_token);",
+                  "pm.collectionVariables.set('refreshToken', body.refresh_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Renovar token OAuth",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "refresh_token", "type": "text" },
+                { "key": "client_id", "value": "{{clientId}}", "type": "text" },
+                { "key": "client_secret", "value": "{{clientSecret}}", "type": "text" },
+                { "key": "refresh_token", "value": "{{refreshToken}}", "type": "text" },
+                { "key": "scope", "value": "{{fullScopes}}", "type": "text" }
+              ]
+            },
+            "url": "{{baseUrl}}/oauth/token"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Refresh token renueva la sesión OAuth', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+                  "pm.expect(body.refresh_token).to.be.a('string').and.not.empty;",
+                  "pm.expect(body.expires_in).to.eql(3600);",
+                  "pm.collectionVariables.set('token', body.access_token);",
+                  "pm.collectionVariables.set('refreshToken', body.refresh_token);"
                 ]
               }
             }
@@ -125,6 +204,54 @@
     {
       "name": "Seguridad",
       "item": [
+        {
+          "name": "Permitir lectura con scope",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{limitedToken}}" }
+            ],
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Token con categorias.read obtiene 200', () => pm.response.to.have.status(200));",
+                  "pm.expect(pm.response.json()).to.be.an('array');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Rechazar escritura sin scope",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{limitedToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"No autorizada\",\n  \"color\": \"#EF4444\"\n}"
+            },
+            "url": "{{baseUrl}}/api/categorias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Token sin categorias.write obtiene 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
         {
           "name": "Rechazar petición sin token",
           "request": {
@@ -372,7 +499,9 @@
               "script": {
                 "exec": [
                   "pm.test('Perfil devuelve 200', () => pm.response.to.have.status(200));",
-                  "pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('runEmail'));"
+                  "const body = pm.response.json();",
+                  "pm.expect(body.email).to.eql(pm.collectionVariables.get('runEmail'));",
+                  "pm.expect(body.scopes).to.include.members(['perfil.read', 'categorias.write', 'gastos.delete']);"
                 ]
               }
             }
@@ -422,6 +551,54 @@
                 "exec": [
                   "pm.test('Categoría eliminada con 204', () => pm.response.to.have.status(204));",
                   "pm.expect(pm.response.text()).to.eql('');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sesión",
+      "item": [
+        {
+          "name": "Cerrar sesión",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Logout revoca la sesión con 200', () => pm.response.to.have.status(200));",
+                  "pm.expect(pm.response.json().message).to.eql('Sesión cerrada correctamente.');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Comprobar token revocado",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{baseUrl}}/api/usuario"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('El access token revocado obtiene 401', () => pm.response.to.have.status(401));"
                 ]
               }
             }

@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/categorias"
+method: POST
+headers:
+  Accept: application/json
+  Authorization: Bearer {{limitedToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "nombre": "No autorizada",
+      "color": "#EF4444"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Token sin categorias.write obtiene 403', () => pm.response.to.have.status(403));
+    language: text/javascript
+order: 2000

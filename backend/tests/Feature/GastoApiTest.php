@@ -8,11 +8,22 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
+use Laravel\Passport\Token;
 use Tests\TestCase;
 
 class GastoApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    private const FULL_SCOPES = [
+        'perfil.read',
+        'categorias.read',
+        'categorias.write',
+        'categorias.delete',
+        'gastos.read',
+        'gastos.write',
+        'gastos.delete',
+    ];
 
     protected function setUp(): void
     {
@@ -49,7 +60,7 @@ class GastoApiTest extends TestCase
     {
         $user = User::factory()->create();
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $createResponse = $this->postJson('/api/categorias', [
             'nombre' => 'Alimentación',
             'color' => '#F97316',
@@ -57,17 +68,17 @@ class GastoApiTest extends TestCase
 
         $categoriaId = $createResponse->json('id');
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->getJson('/api/categorias')
             ->assertOk()
             ->assertJsonFragment(['id' => $categoriaId, 'nombre' => 'Alimentación']);
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->getJson("/api/categorias/{$categoriaId}")
             ->assertOk()
             ->assertJsonPath('id', $categoriaId);
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->patchJson("/api/categorias/{$categoriaId}", [
             'nombre' => 'Alimentación actualizada',
             'color' => '#2563EB',
@@ -75,7 +86,7 @@ class GastoApiTest extends TestCase
             ->assertJsonPath('nombre', 'Alimentación actualizada')
             ->assertJsonPath('color', '#2563EB');
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->deleteJson("/api/categorias/{$categoriaId}")->assertNoContent();
         $this->assertDatabaseMissing('categorias', ['id' => $categoriaId]);
     }
@@ -85,7 +96,7 @@ class GastoApiTest extends TestCase
         $user = User::factory()->create();
         $categoria = Categoria::create(['nombre' => 'Alimentación', 'color' => '#F97316']);
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
 
         $createResponse = $this->postJson('/api/gastos', [
             'categoria_id' => $categoria->id,
@@ -96,17 +107,17 @@ class GastoApiTest extends TestCase
 
         $gastoId = $createResponse->json('id');
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->getJson('/api/gastos')
             ->assertOk()
             ->assertJsonPath('data.0.descripcion', 'Almuerzo');
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->getJson("/api/gastos/{$gastoId}")
             ->assertOk()
             ->assertJsonPath('id', $gastoId);
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->patchJson("/api/gastos/{$gastoId}", [
             'descripcion' => 'Almuerzo actualizado',
             'monto' => 50.25,
@@ -115,7 +126,7 @@ class GastoApiTest extends TestCase
             ->assertJsonPath('descripcion', 'Almuerzo actualizado')
             ->assertJsonPath('monto', '50.25');
 
-        Passport::actingAs($user);
+        Passport::actingAs($user, self::FULL_SCOPES);
         $this->deleteJson("/api/gastos/{$gastoId}")->assertNoContent();
         $this->assertDatabaseMissing('gastos', ['id' => $gastoId]);
     }
@@ -130,15 +141,15 @@ class GastoApiTest extends TestCase
             'fecha_gasto' => '2026-08-18',
         ]);
 
-        Passport::actingAs($otherUser);
+        Passport::actingAs($otherUser, self::FULL_SCOPES);
         $this->getJson("/api/gastos/{$gasto->id}")->assertForbidden();
 
-        Passport::actingAs($otherUser);
+        Passport::actingAs($otherUser, self::FULL_SCOPES);
         $this->patchJson("/api/gastos/{$gasto->id}", [
             'descripcion' => 'Intento de cambio',
         ])->assertForbidden();
 
-        Passport::actingAs($otherUser);
+        Passport::actingAs($otherUser, self::FULL_SCOPES);
         $this->deleteJson("/api/gastos/{$gasto->id}")->assertForbidden();
 
         $this->assertDatabaseHas('gastos', [
@@ -181,11 +192,100 @@ class GastoApiTest extends TestCase
             'client_secret' => $client->plainSecret,
             'username' => $user->email,
             'password' => 'password123',
-            'scope' => '',
+            'scope' => implode(' ', self::FULL_SCOPES),
         ])->assertOk()->assertJsonStructure([
             'access_token',
             'refresh_token',
             'expires_in',
+        ])->assertJsonPath('expires_in', 3600);
+    }
+
+    public function test_a_refresh_token_can_renew_the_oauth_session(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'refresh@example.com',
+            'password' => 'password123',
         ]);
+        $client = app(ClientRepository::class)->createPasswordGrantClient('Postman', 'users');
+        $scope = implode(' ', self::FULL_SCOPES);
+
+        $initialResponse = $this->post('/oauth/token', [
+            'grant_type' => 'password',
+            'client_id' => $client->id,
+            'client_secret' => $client->plainSecret,
+            'username' => $user->email,
+            'password' => 'password123',
+            'scope' => $scope,
+        ])->assertOk();
+
+        $this->post('/oauth/token', [
+            'grant_type' => 'refresh_token',
+            'client_id' => $client->id,
+            'client_secret' => $client->plainSecret,
+            'refresh_token' => $initialResponse->json('refresh_token'),
+            'scope' => $scope,
+        ])->assertOk()->assertJsonStructure([
+            'access_token',
+            'refresh_token',
+            'expires_in',
+        ])->assertJsonPath('expires_in', 3600);
+    }
+
+    public function test_scopes_allow_reading_and_reject_unauthorized_writes(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'scopes@example.com',
+            'password' => 'password123',
+        ]);
+        $client = app(ClientRepository::class)->createPasswordGrantClient('Postman', 'users');
+
+        $response = $this->post('/oauth/token', [
+            'grant_type' => 'password',
+            'client_id' => $client->id,
+            'client_secret' => $client->plainSecret,
+            'username' => $user->email,
+            'password' => 'password123',
+            'scope' => 'categorias.read',
+        ])->assertOk();
+
+        $headers = ['Authorization' => 'Bearer '.$response->json('access_token')];
+
+        $this->withHeaders($headers)->getJson('/api/categorias')->assertOk();
+        $this->withHeaders($headers)->postJson('/api/categorias', [
+            'nombre' => 'No autorizada',
+            'color' => '#EF4444',
+        ])->assertForbidden();
+    }
+
+    public function test_logout_revokes_access_and_refresh_tokens(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'logout@example.com',
+            'password' => 'password123',
+        ]);
+        $client = app(ClientRepository::class)->createPasswordGrantClient('Postman', 'users');
+
+        $response = $this->post('/oauth/token', [
+            'grant_type' => 'password',
+            'client_id' => $client->id,
+            'client_secret' => $client->plainSecret,
+            'username' => $user->email,
+            'password' => 'password123',
+            'scope' => implode(' ', self::FULL_SCOPES),
+        ])->assertOk();
+
+        $token = Token::query()
+            ->where('user_id', $user->id)
+            ->where('client_id', $client->id)
+            ->firstOrFail();
+        $refreshToken = $token->refreshToken()->firstOrFail();
+
+        $this->withToken($response->json('access_token'))
+            ->postJson('/api/auth/logout')
+            ->assertOk()
+            ->assertJsonPath('message', 'Sesión cerrada correctamente.');
+
+        $this->assertTrue($token->refresh()->revoked);
+        $this->assertTrue($refreshToken->refresh()->revoked);
     }
 }

@@ -6,6 +6,10 @@ variables:
   clientId: ""
   clientSecret: ""
   token: ""
+  limitedToken: ""
+  refreshToken: ""
+  readScopes: perfil.read categorias.read gastos.read
+  fullScopes: perfil.read categorias.read categorias.write categorias.delete gastos.read gastos.write gastos.delete
   runEmail: ""
   runPassword: password123
   runSuffix: ""

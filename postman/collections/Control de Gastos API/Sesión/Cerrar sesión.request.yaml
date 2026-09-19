@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{baseUrl}}/api/auth/logout"
+method: POST
+headers:
+  Accept: application/json
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Logout revoca la sesión con 200', () => pm.response.to.have.status(200));
+      pm.expect(pm.response.json().message).to.eql('Sesión cerrada correctamente.');
+    language: text/javascript
+order: 1000

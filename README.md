@@ -58,8 +58,10 @@ Passport proporciona dos flujos utilizados por el proyecto:
 
 - **Personal Access Token:** los endpoints de registro e inicio de sesión emiten un Bearer Token para la aplicación.
 - **Password Grant:** Postman solicita `access_token` y `refresh_token` mediante `POST /oauth/token` usando un cliente OAuth.
+- **Expiración y renovación:** los access tokens duran una hora, los refresh tokens 30 días y los tokens personales seis meses.
+- **Scopes:** las operaciones de perfil, categorías y gastos se autorizan con permisos de lectura, escritura o eliminación.
 
-Las rutas de categorías, gastos, perfil y cierre de sesión están agrupadas bajo los middleware `auth:api` y `throttle:api`. Una petición sin token válido recibe `401 Unauthorized`.
+Las rutas de categorías, gastos, perfil y cierre de sesión están agrupadas bajo los middleware `auth:api` y `throttle:api`. Las operaciones CRUD también validan el scope requerido. Una petición sin token válido recibe `401 Unauthorized`; un token válido sin el scope necesario recibe `403 Forbidden`.
 
 ## API principal
 
@@ -68,12 +70,12 @@ Las rutas de categorías, gastos, perfil y cierre de sesión están agrupadas ba
 | POST | `/api/auth/register` | Registrar usuario | Pública |
 | POST | `/api/auth/login` | Iniciar sesión | Pública |
 | POST | `/oauth/token` | Generar tokens OAuth | Credenciales OAuth |
-| POST | `/api/auth/logout` | Revocar el token actual | Bearer Token |
-| GET | `/api/usuario` | Consultar el perfil | Bearer Token |
-| GET/POST | `/api/categorias` | Listar o crear categorías | Bearer Token |
-| GET/PATCH/DELETE | `/api/categorias/{id}` | Consultar, actualizar o eliminar una categoría | Bearer Token |
-| GET/POST | `/api/gastos` | Listar o crear gastos propios | Bearer Token |
-| GET/PATCH/DELETE | `/api/gastos/{id}` | Consultar, actualizar o eliminar un gasto propio | Bearer Token |
+| POST | `/api/auth/logout` | Revocar access y refresh token | Bearer Token |
+| GET | `/api/usuario` | Consultar el perfil | `perfil.read` |
+| GET/POST | `/api/categorias` | Listar o crear categorías | `categorias.read` / `categorias.write` |
+| GET/PATCH/DELETE | `/api/categorias/{id}` | Consultar, actualizar o eliminar una categoría | `categorias.read` / `categorias.write` / `categorias.delete` |
+| GET/POST | `/api/gastos` | Listar o crear gastos propios | `gastos.read` / `gastos.write` |
+| GET/PATCH/DELETE | `/api/gastos/{id}` | Consultar, actualizar o eliminar un gasto propio | `gastos.read` / `gastos.write` / `gastos.delete` |
 
 Los gastos están asociados al usuario autenticado. Un usuario no puede consultar, modificar ni eliminar gastos pertenecientes a otra cuenta.
 
@@ -93,11 +95,11 @@ clientId      ID del cliente Password Grant
 clientSecret  secreto del cliente, marcado como sensible
 ```
 
-La colección ejecuta registro, login, generación de token OAuth, comprobación `401` y CRUD completo. Su resultado verificado es:
+La colección ejecuta registro, login, tokens limitados y completos, renovación con `refresh_token`, comprobaciones `401`/`403`, CRUD completo y cierre de sesión. Su resultado verificado es:
 
 ```text
-15 peticiones
-15 aserciones
+21 peticiones
+21 aserciones
 0 fallos
 ```
 
@@ -112,11 +114,11 @@ php artisan test
 Resultado verificado:
 
 ```text
-8 pruebas aprobadas
-50 aserciones
+11 pruebas aprobadas
+65 aserciones
 ```
 
-Las pruebas cubren registro, generación de tokens, límites de login, rutas sin autenticar, CRUD, propiedad de los gastos y Password Grant.
+Las pruebas cubren registro, generación y renovación de tokens, expiración, scopes, revocación de access/refresh tokens, límites de login, rutas sin autenticar, CRUD y propiedad de los gastos.
 
 ## Documentación
 

@@ -47,9 +47,9 @@ La integración está distribuida en:
 
 - `app/Models/User.php`: implementa `OAuthenticatable` y usa `HasApiTokens`.
 - `config/auth.php`: define el guard `api` con driver `passport`.
-- `app/Providers/AppServiceProvider.php`: habilita Password Grant.
-- `routes/api.php`: protege los recursos con `auth:api`.
-- `app/Http/Controllers/Api/AuthController.php`: emite y revoca tokens personales.
+- `app/Providers/AppServiceProvider.php`: habilita Password Grant, tiempos de expiración y scopes.
+- `routes/api.php`: protege los recursos con `auth:api` y el scope correspondiente.
+- `app/Http/Controllers/Api/AuthController.php`: emite tokens personales y revoca access/refresh tokens.
 
 ## Ejecutar la API
 
@@ -112,10 +112,37 @@ client_id={client-id}
 client_secret={client-secret}
 username=ana@example.com
 password=password123
-scope=
+scope=perfil.read categorias.read categorias.write categorias.delete gastos.read gastos.write gastos.delete
 ```
 
 La respuesta incluye `access_token`, `refresh_token`, `expires_in` y `token_type`.
+
+### Renovar la sesión
+
+```http
+POST /oauth/token
+Content-Type: application/x-www-form-urlencoded
+```
+
+```text
+grant_type=refresh_token
+client_id={client-id}
+client_secret={client-secret}
+refresh_token={refresh-token}
+scope=perfil.read categorias.read categorias.write categorias.delete gastos.read gastos.write gastos.delete
+```
+
+El access token dura una hora, el refresh token 30 días y los tokens personales seis meses. El endpoint de cierre de sesión revoca tanto el access token como el refresh token asociado.
+
+### Scopes disponibles
+
+| Recurso | Lectura | Crear/actualizar | Eliminar |
+|---|---|---|---|
+| Perfil | `perfil.read` | — | — |
+| Categorías | `categorias.read` | `categorias.write` | `categorias.delete` |
+| Gastos | `gastos.read` | `gastos.write` | `gastos.delete` |
+
+Si no se solicita ningún scope, Passport concede únicamente los scopes predeterminados de lectura. El endpoint de perfil usa `tokenCan()` y devuelve la lista de scopes concedidos al token actual.
 
 ### Consumir rutas protegidas
 
@@ -159,7 +186,7 @@ newman run "postman\Control-Gastos.postman_collection.json" `
     -e "postman\Control-Gastos.local.postman_environment.json"
 ```
 
-Resultado verificado: 15 peticiones y 15 aserciones, sin fallos.
+Resultado verificado: 21 peticiones y 21 aserciones, sin fallos.
 
 ## Pruebas automatizadas
 
@@ -176,8 +203,11 @@ La suite cubre:
 - Bloqueo de acceso a gastos ajenos.
 - Límite de cinco intentos de login por minuto.
 - Generación de tokens mediante Password Grant.
+- Expiración de una hora y renovación mediante `refresh_token`.
+- Autorización por scopes y rechazo `403` de operaciones no permitidas.
+- Revocación conjunta del access token y el refresh token al cerrar sesión.
 
-Resultado verificado: 8 pruebas y 50 aserciones aprobadas.
+Resultado verificado: 11 pruebas y 65 aserciones aprobadas.
 
 ## Más documentación
 

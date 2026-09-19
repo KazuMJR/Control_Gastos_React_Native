@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Laravel\Passport\Passport;
 
 class AuthController extends Controller
 {
@@ -16,6 +18,8 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'scopes' => ['sometimes', 'array'],
+            'scopes.*' => ['string', Rule::in(Passport::scopeIds())],
         ]);
 
         $user = User::create([
@@ -24,7 +28,11 @@ class AuthController extends Controller
             'password' => $data['password'],
         ]);
 
-        return response()->json($this->tokenResponse($user, $data['device_name'] ?? 'postman'), 201);
+        return response()->json($this->tokenResponse(
+            $user,
+            $data['device_name'] ?? 'postman',
+            $data['scopes'] ?? Passport::scopeIds(),
+        ), 201);
     }
 
     public function login(Request $request)
@@ -33,6 +41,8 @@ class AuthController extends Controller
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
             'device_name' => ['nullable', 'string', 'max:255'],
+            'scopes' => ['sometimes', 'array'],
+            'scopes.*' => ['string', Rule::in(Passport::scopeIds())],
         ]);
 
         $user = User::where('email', $data['email'])->first();
@@ -41,21 +51,32 @@ class AuthController extends Controller
             return response()->json(['message' => 'Credenciales inválidas.'], 422);
         }
 
-        return response()->json($this->tokenResponse($user, $data['device_name'] ?? 'postman'));
+        return response()->json($this->tokenResponse(
+            $user,
+            $data['device_name'] ?? 'postman',
+            $data['scopes'] ?? Passport::scopeIds(),
+        ));
     }
 
     public function logout(Request $request)
     {
-        $request->user()->token()?->revoke();
+        $token = $request->user()->token();
+
+        // Revoca el access token y también su refresh token, cuando exista.
+        $token?->refreshToken?->revoke();
+        $token?->revoke();
 
         return response()->json(['message' => 'Sesión cerrada correctamente.']);
     }
 
-    private function tokenResponse(User $user, string $deviceName): array
+    private function tokenResponse(User $user, string $deviceName, array $scopes): array
     {
+        $token = $user->createToken($deviceName, $scopes);
+
         return [
-            'token' => $user->createToken($deviceName)->accessToken,
+            'token' => $token->accessToken,
             'token_type' => 'Bearer',
+            'scopes' => $scopes,
             'user' => $user,
         ];
     }

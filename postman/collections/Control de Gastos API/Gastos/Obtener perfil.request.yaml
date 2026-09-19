@@ -8,6 +8,8 @@ scripts:
   - type: afterResponse
     code: |-
       pm.test('Perfil devuelve 200', () => pm.response.to.have.status(200));
-      pm.expect(pm.response.json().email).to.eql(pm.collectionVariables.get('runEmail'));
+      const body = pm.response.json();
+      pm.expect(body.email).to.eql(pm.collectionVariables.get('runEmail'));
+      pm.expect(body.scopes).to.include.members(['perfil.read', 'categorias.write', 'gastos.delete']);
     language: text/javascript
 order: 5000
