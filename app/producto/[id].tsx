@@ -111,11 +111,11 @@ export default function ProductoDetalleScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={() => router.replace("/(tabs)/mercado")} style={styles.backButton}>
         <Ionicons name="arrow-back" size={20} color="#2563EB" />
         <Text style={styles.backText}>Volver al catalogo</Text>
       </Pressable>
-      <Image source={{ uri: product.images[0] ?? product.thumbnail }} style={styles.heroImage} />
+      <Image resizeMode="cover" source={{ uri: product.images[0] ?? product.thumbnail }} style={styles.heroImage} />
       <View style={styles.card}>
         <Text style={styles.category}>{product.category}</Text>
         <Text style={styles.title}>{product.title}</Text>
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   retryText: { color: "#FFFFFF", fontWeight: "bold" },
   backButton: { alignItems: "center", alignSelf: "flex-start", flexDirection: "row", marginBottom: 12, paddingVertical: 5 },
   backText: { color: "#2563EB", fontWeight: "bold", marginLeft: 6 },
-  heroImage: { backgroundColor: "#FFFFFF", borderRadius: 14, height: 260, resizeMode: "cover", width: "100%" },
+  heroImage: { backgroundColor: "#FFFFFF", borderRadius: 14, height: 260, width: "100%" },
   card: { backgroundColor: "#FFFFFF", borderRadius: 14, elevation: 2, marginTop: 14, padding: 20 },
   category: { color: "#2563EB", fontSize: 14, fontWeight: "bold", textTransform: "capitalize" },
   title: { color: "#0F172A", fontSize: 26, fontWeight: "bold", marginTop: 5 },

@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import { create, isAxiosError } from "axios";
 
 const TOKEN_KEY = "dummyjson_catalog_token";
 const CATALOG_USERNAME = "emilys";
@@ -27,7 +27,7 @@ type ProductsResponse = {
   products: Product[];
 };
 
-export const externalApi = axios.create({
+export const externalApi = create({
   baseURL: "https://dummyjson.com",
   timeout: 10000,
 });
@@ -70,7 +70,7 @@ export async function getExternalProducts() {
     return data.products;
   } catch (error) {
     // Si el token externo vence, se renueva una vez y se repite la consulta.
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
+    if (isAxiosError(error) && error.response?.status === 401) {
       await AsyncStorage.removeItem(TOKEN_KEY);
       await ensureCatalogSession();
       const { data } = await externalApi.get<ProductsResponse>("/auth/products?limit=0");
