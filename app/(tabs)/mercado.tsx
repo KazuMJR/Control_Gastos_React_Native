@@ -109,6 +109,7 @@ export default function MercadoScreen() {
       await loginToExternalApi(username.trim(), password);
       setAuthenticated(true);
       setFailedAttempts(0);
+      await loadProducts();
     } catch (error) {
       const nextFailedAttempts = failedAttempts + 1;
       setFailedAttempts(nextFailedAttempts);
@@ -128,12 +129,6 @@ export default function MercadoScreen() {
       setLoggingIn(false);
     }
   };
-
-  useEffect(() => {
-    if (authenticated) {
-      loadProducts();
-    }
-  }, [authenticated]);
 
   if (!authenticated) {
     return (

@@ -41,8 +41,34 @@ export default function ProductoDetalleScreen() {
   }, [id]);
 
   useEffect(() => {
-    loadProduct();
-  }, [loadProduct]);
+    let cancelled = false;
+
+    getExternalProduct(id)
+      .then((requestedProduct) => {
+        if (!cancelled) {
+          setProduct(requestedProduct);
+          setError("");
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (!cancelled) {
+          setError(
+            isAxiosError(requestError)
+              ? requestError.response?.data?.message ?? "No fue posible consultar este producto."
+              : "No fue posible consultar este producto."
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   if (loading) {
     return (
