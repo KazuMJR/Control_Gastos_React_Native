@@ -1,6 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { create, isAxiosError } from "axios";
 
+import { localizeProduct } from "./product-localization";
+
 const TOKEN_KEY = "dummyjson_catalog_token";
 const CATALOG_USERNAME = "emilys";
 const CATALOG_PASSWORD = "emilyspass";
@@ -17,14 +19,18 @@ export type Product = {
   brand?: string;
   thumbnail: string;
   images: string[];
+  originalTitle: string;
+  originalCategory: string;
 };
+
+export type RawProduct = Omit<Product, "originalTitle" | "originalCategory">;
 
 type AuthResponse = {
   accessToken: string;
 };
 
 type ProductsResponse = {
-  products: Product[];
+  products: RawProduct[];
 };
 
 export const externalApi = create({
@@ -67,14 +73,14 @@ export async function getExternalProducts() {
 
   try {
     const { data } = await externalApi.get<ProductsResponse>("/auth/products?limit=0");
-    return data.products;
+    return data.products.map(localizeProduct);
   } catch (error) {
     // Si el token externo vence, se renueva una vez y se repite la consulta.
     if (isAxiosError(error) && error.response?.status === 401) {
       await AsyncStorage.removeItem(TOKEN_KEY);
       await ensureCatalogSession();
       const { data } = await externalApi.get<ProductsResponse>("/auth/products?limit=0");
-      return data.products;
+      return data.products.map(localizeProduct);
     }
 
     throw error;
@@ -83,6 +89,6 @@ export async function getExternalProducts() {
 
 export async function getExternalProduct(id: string) {
   await ensureCatalogSession();
-  const { data } = await externalApi.get<Product>(`/auth/products/${id}`);
-  return data;
+  const { data } = await externalApi.get<RawProduct>(`/auth/products/${id}`);
+  return localizeProduct(data);
 }
