@@ -75,6 +75,16 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="tareas"
+        options={{
+          title: "Tareas",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="git-network" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
