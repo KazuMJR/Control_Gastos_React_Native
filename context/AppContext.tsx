@@ -9,7 +9,6 @@ export type CompraDeseada = {
   id: number;
   titulo: string;
   imagen: string;
-  precioUsd: number;
   precioQuetzales: number;
 };
 

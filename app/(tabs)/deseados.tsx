@@ -42,7 +42,7 @@ export default function DeseadosScreen() {
             <Image source={{ uri: item.imagen }} style={styles.image} />
             <View style={styles.info}>
               <Text numberOfLines={2} style={styles.title}>{item.titulo}</Text>
-              <Text style={styles.price}>USD {item.precioUsd.toFixed(2)} · Q {item.precioQuetzales.toFixed(2)}</Text>
+              <Text style={styles.price}>Q {item.precioQuetzales.toFixed(2)}</Text>
               <View style={styles.actions}>
                 <Pressable onPress={() => comprar(item)} style={styles.buyButton}><Text style={styles.buyText}>Comprar</Text></Pressable>
                 <Pressable onPress={() => eliminarDeseado(item.id)} style={styles.deleteButton}><Text style={styles.deleteText}>Quitar</Text></Pressable>

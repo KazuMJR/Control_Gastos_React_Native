@@ -95,7 +95,6 @@ export default function ProductoDetalleScreen() {
     id: product.id,
     titulo: product.title,
     imagen: product.thumbnail,
-    precioUsd: product.price,
     precioQuetzales: product.price * USD_TO_GTQ,
   };
 
@@ -146,8 +145,7 @@ export default function ProductoDetalleScreen() {
         <Text style={styles.category}>{product.category}</Text>
         <Text style={styles.title}>{product.title}</Text>
         {product.brand ? <Text style={styles.brand}>{product.brand}</Text> : null}
-        <Text style={styles.price}>USD {product.price.toFixed(2)}</Text>
-        <Text style={styles.quetzales}>Equivale a Q {compra.precioQuetzales.toFixed(2)}</Text>
+        <Text style={styles.price}>Q {compra.precioQuetzales.toFixed(2)}</Text>
         <Text style={styles.description}>{product.description}</Text>
 
         <View style={styles.metrics}>
@@ -192,7 +190,6 @@ const styles = StyleSheet.create({
   title: { color: "#0F172A", fontSize: 26, fontWeight: "bold", marginTop: 5 },
   brand: { color: "#64748B", fontSize: 15, marginTop: 5 },
   price: { color: "#15803D", fontSize: 25, fontWeight: "bold", marginTop: 16 },
-  quetzales: { color: "#475569", fontSize: 15, fontWeight: "bold", marginTop: 4 },
   description: { color: "#334155", fontSize: 16, lineHeight: 24, marginTop: 18 },
   metrics: { borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", justifyContent: "space-between", marginTop: 22, paddingTop: 18 },
   metric: { alignItems: "center", flex: 1 },
