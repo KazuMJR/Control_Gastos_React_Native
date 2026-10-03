@@ -125,6 +125,41 @@ Las pruebas cubren registro, generación y renovación de tokens, expiración, s
 - [Referencia de la API](backend/API.md).
 - [Documentación oficial de Laravel Passport 13](https://laravel.com/framework/docs/13.x/passport).
 
+## Integración colaborativa de tareas
+
+La pestaña **Tareas** consume el backend Laravel incluido en
+`Proyecto_Colaborativo/AppTest-develop/backend`. La integración permite:
+
+- entrar a una demostración con un solo toque o usar otra cuenta de Laravel Passport;
+- consultar el progreso general y por categoría dentro de un rango de fechas, incluyendo las tareas y sus descripciones;
+- registrar una tarea nueva con descripción y categoría opcionales.
+
+### Inicio integrado
+
+Desde la raíz del proyecto ejecuta un solo comando:
+
+```powershell
+npm run dev
+```
+
+Este comando realiza automáticamente lo necesario para la demostración:
+
+- actualiza las migraciones y prepara la cuenta con datos de ejemplo;
+- inicia Laravel en el puerto `8001`;
+- crea una dirección HTTPS temporal para Laravel y la guarda en `.env.local`;
+- abre Expo mediante un túnel con la caché limpia, evitando bloqueos de Metro en el teléfono.
+
+Escanea el código QR con Expo Go y, en la pestaña **Tareas**, pulsa **Entrar a la demostración**. No es necesario escribir correo ni contraseña. Si se necesitan para mostrar el proceso manual, son:
+
+- correo: `integracion@controlgastos.test`
+- contraseña: `Tareas2026!`
+
+Los túneles permiten usar el teléfono aunque el router aísle los dispositivos. Mantén esa terminal abierta durante la demostración; al presionar `Ctrl+C` se cierran Expo, el túnel temporal de la API y Laravel. La dirección de la API cambia en cada inicio y deja de funcionar al cerrar el comando.
+
+El reporte se obtiene con `GET /api/tasks/progress?from=AAAA-MM-DD&to=AAAA-MM-DD` y la creación usa `POST /api/tasks`. Ambas rutas requieren `Authorization: Bearer <token>`.
+
+El catálogo externo conserva los precios originales de la API internamente, pero los muestra y registra en quetzales usando el tipo de cambio de referencia `USD 1 = Q 7.75`.
+
 ## Credenciales de la actividad
 
 El repositorio incluye plantillas y los comandos necesarios para generar las credenciales localmente. Después de clonar, cada equipo debe crear su `.env`, claves OAuth, base SQLite y cliente Passport.

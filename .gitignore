@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+.tools/
 
 # Expo
 .expo/
@@ -25,6 +26,7 @@ expo-env.d.ts
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+**/.phpunit.result.cache
 
 # macOS
 .DS_Store
