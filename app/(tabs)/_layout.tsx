@@ -5,15 +5,19 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: {
-          backgroundColor: "#2563EB",
-        },
-        headerTintColor: "#fff",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
+        headerShown: false,
         tabBarActiveTintColor: "#2563EB",
-        tabBarInactiveTintColor: "gray",
+        tabBarInactiveTintColor: "#94A3B8",
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "700",
+        },
+        tabBarStyle: {
+          borderTopColor: "#E2E8F0",
+          height: 66,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
       }}
     >
       <Tabs.Screen
@@ -39,9 +43,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="estadisticas"
         options={{
-          title: "Estadísticas",
+          title: "Historial",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="bar-chart" size={size} color={color} />
+            <Ionicons name="time" size={size} color={color} />
           ),
         }}
       />
@@ -49,6 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="perfil"
         options={{
+          href: null,
           title: "Perfil",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person" size={size} color={color} />
@@ -69,6 +74,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="deseados"
         options={{
+          href: null,
           title: "Deseados",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="heart" size={size} color={color} />
