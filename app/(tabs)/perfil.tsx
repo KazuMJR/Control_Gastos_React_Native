@@ -20,7 +20,8 @@ export default function PerfilScreen() {
     setNombre,
     setCorreo,
     restablecerAplicacion,
-    saldo,
+    presupuestoMensual,
+    totalGastadoMes,
     actualizarSaldo,
   } = useContext(AppContext);
 
@@ -28,7 +29,7 @@ export default function PerfilScreen() {
 
   const [nuevoNombre, setNuevoNombre] = useState(nombre);
   const [nuevoCorreo, setNuevoCorreo] = useState(correo);
-  const [nuevoSaldo, setNuevoSaldo] = useState(saldo.toFixed(2));
+  const [nuevoSaldo, setNuevoSaldo] = useState(presupuestoMensual.toFixed(2));
 
   const guardarPerfil = () => {
     const saldoNumero = Number(nuevoSaldo.replace(",", "."));
@@ -39,7 +40,10 @@ export default function PerfilScreen() {
     }
 
     if (!actualizarSaldo(saldoNumero)) {
-      Alert.alert("Saldo no valido", "Ingresa un monto igual o mayor que cero.");
+      Alert.alert(
+        "Presupuesto no válido",
+        `El presupuesto no puede ser menor que los Q ${totalGastadoMes.toFixed(2)} ya gastados este mes.`
+      );
       return;
     }
 
@@ -51,7 +55,7 @@ export default function PerfilScreen() {
       pathname: "/resultado",
       params: {
         title: "Perfil actualizado",
-        message: "Tus datos personales y el saldo disponible fueron guardados correctamente.",
+        message: "Tus datos personales y el presupuesto mensual fueron guardados correctamente.",
         returnTo: "/(tabs)/perfil",
       },
     });
@@ -60,7 +64,7 @@ export default function PerfilScreen() {
   const confirmarRestablecer = () => {
     Alert.alert(
       "Restablecer aplicación",
-      "¿Deseas borrar todos los datos y volver a los valores iniciales?",
+      "¿Deseas restaurar el perfil, el presupuesto y la lista de deseos? Los gastos guardados en la API se conservarán.",
       [
         {
           text: "Cancelar",
@@ -81,7 +85,7 @@ export default function PerfilScreen() {
               pathname: "/resultado",
               params: {
                 title: "Aplicación restablecida",
-                message: "Se borraron tus datos y se restauraron los valores iniciales.",
+                message: "Se restauraron el perfil y las preferencias. Tu historial de gastos permanece guardado en la API.",
                 returnTo: "/(tabs)/perfil",
               },
             });
@@ -111,7 +115,7 @@ export default function PerfilScreen() {
 
       <TextInput
         style={styles.input}
-        placeholder="Saldo disponible en quetzales"
+        placeholder="Presupuesto mensual en quetzales"
         keyboardType="decimal-pad"
         value={nuevoSaldo}
         onChangeText={setNuevoSaldo}

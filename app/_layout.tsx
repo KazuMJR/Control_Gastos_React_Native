@@ -17,7 +17,6 @@ export default function RootLayout() {
   return (
     <AppProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        {/* La app movil solo consume DummyJSON; Laravel se prueba por separado con Postman. */}
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="producto/[id]" options={{ title: "Detalle del producto" }} />

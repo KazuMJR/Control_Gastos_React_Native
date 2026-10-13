@@ -1,20 +1,29 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { AppContext } from "../../context/AppContext";
+import { expenseApiErrorMessage } from "../../services/expenses-api";
 
 export default function DeseadosScreen() {
   const { deseados, eliminarDeseado, comprarDeseado, saldo, totalDeseados } = useContext(AppContext);
+  const [purchasingId, setPurchasingId] = useState<number | null>(null);
   const alcanzaTotal = totalDeseados <= saldo;
 
-  const comprar = (item: any) => {
-    if (comprarDeseado(item)) {
-      Alert.alert("Compra registrada", `${item.titulo} fue agregado a tus gastos.`);
-      return;
-    }
+  const comprar = async (item: any) => {
+    setPurchasingId(item.id);
+    try {
+      if (await comprarDeseado(item)) {
+        Alert.alert("Compra registrada", `${item.titulo} fue guardado en la API de gastos.`);
+        return;
+      }
 
-    Alert.alert("Saldo insuficiente", "No tienes saldo disponible para esta compra.");
+      Alert.alert("Saldo insuficiente", "No tienes saldo disponible para esta compra.");
+    } catch (error) {
+      Alert.alert("No se pudo registrar", expenseApiErrorMessage(error));
+    } finally {
+      setPurchasingId(null);
+    }
   };
 
   return (
@@ -44,7 +53,9 @@ export default function DeseadosScreen() {
               <Text numberOfLines={2} style={styles.title}>{item.titulo}</Text>
               <Text style={styles.price}>Q {item.precioQuetzales.toFixed(2)}</Text>
               <View style={styles.actions}>
-                <Pressable onPress={() => comprar(item)} style={styles.buyButton}><Text style={styles.buyText}>Comprar</Text></Pressable>
+                <Pressable disabled={purchasingId !== null} onPress={() => comprar(item)} style={styles.buyButton}>
+                  <Text style={styles.buyText}>{purchasingId === item.id ? "Guardando…" : "Comprar"}</Text>
+                </Pressable>
                 <Pressable onPress={() => eliminarDeseado(item.id)} style={styles.deleteButton}><Text style={styles.deleteText}>Quitar</Text></Pressable>
               </View>
             </View>

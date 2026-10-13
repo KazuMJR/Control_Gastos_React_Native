@@ -6,12 +6,25 @@ const { existsSync, writeFileSync } = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const backend = path.join(root, "Proyecto_Colaborativo", "AppTest-develop", "backend");
+const expensesBackend = path.join(root, "backend");
+const tasksBackend = path.join(root, "Proyecto_Colaborativo", "AppTest-develop", "backend");
 const php = path.join(root, ".tools", "php", "php.exe");
 const cloudflared = path.join(root, ".tools", "cloudflared.exe");
-const artisan = path.join(backend, "artisan");
-const laravelRouter = path.join(
-  backend,
+const expensesArtisan = path.join(expensesBackend, "artisan");
+const tasksArtisan = path.join(tasksBackend, "artisan");
+const expensesLaravelRouter = path.join(
+  expensesBackend,
+  "vendor",
+  "laravel",
+  "framework",
+  "src",
+  "Illuminate",
+  "Foundation",
+  "resources",
+  "server.php"
+);
+const tasksLaravelRouter = path.join(
+  tasksBackend,
   "vendor",
   "laravel",
   "framework",
@@ -84,7 +97,7 @@ function cleanup(exitCode = 0) {
   }
 
   stopping = true;
-  log("Cerrando Expo, el túnel de la API y Laravel…");
+  log("Cerrando Expo, los túneles y las API de Laravel…");
   for (const child of children) {
     stopChild(child);
   }
@@ -155,45 +168,88 @@ function waitForTunnel(child) {
   });
 }
 
-async function main() {
-  requireFile(php, "No se encontró .tools/php/php.exe.");
-  requireFile(cloudflared, "No se encontró .tools/cloudflared.exe.");
-  requireFile(artisan, "No se encontró el backend colaborativo.");
-  requireFile(laravelRouter, "Faltan dependencias de Laravel. Ejecuta composer install una vez.");
-  requireFile(expoCli, "Faltan dependencias de Expo. Ejecuta npm install una vez.");
+function ensurePassportKeys(backend, artisan) {
+  const privateKey = path.join(backend, "storage", "oauth-private.key");
+  const publicKey = path.join(backend, "storage", "oauth-public.key");
 
-  log("Preparando la base de datos y la cuenta de demostración…");
-  run(php, [artisan, "migrate", "--force"], backend);
-  run(php, [artisan, "db:seed", "--class=Database\\Seeders\\DemoTaskIntegrationSeeder", "--force"], backend);
+  if (!existsSync(privateKey) || !existsSync(publicKey)) {
+    log(`Generando claves Passport para ${path.basename(path.dirname(backend))}…`);
+    run(php, [artisan, "passport:keys", "--force"], backend);
+  }
+}
 
-  log("Iniciando Laravel localmente en el puerto 8001…");
-  const laravel = start(
-    php,
-    ["-S", "127.0.0.1:8001", laravelRouter],
-    path.join(backend, "public"),
-    { stdio: ["ignore", "pipe", "pipe"] }
-  );
-  pipeWithPrefix(laravel.stdout, "Laravel");
-  pipeWithPrefix(laravel.stderr, "Laravel");
-  await waitForApi("http://127.0.0.1:8001/up", laravel);
-
-  log("Creando la dirección HTTPS temporal para la API…");
-  const apiTunnel = start(
+async function openApiTunnel(localUrl, label) {
+  const tunnel = start(
     cloudflared,
-    ["tunnel", "--url", "http://127.0.0.1:8001", "--no-autoupdate", "--protocol", "http2"],
+    ["tunnel", "--url", localUrl, "--no-autoupdate", "--protocol", "http2"],
     root,
     { stdio: ["ignore", "pipe", "pipe"] }
   );
   const importantTunnelLine = (line) => /trycloudflare\.com|Registered tunnel connection|\bERR\b/.test(line);
-  pipeWithPrefix(apiTunnel.stdout, "Túnel API", importantTunnelLine);
-  pipeWithPrefix(apiTunnel.stderr, "Túnel API", importantTunnelLine);
-  const publicApiOrigin = await waitForTunnel(apiTunnel);
-  log("Esperando que la dirección HTTPS sea accesible; la primera vez puede tardar hasta 90 segundos…");
-  await waitForApi(`${publicApiOrigin}/up`, apiTunnel, 90000);
+  pipeWithPrefix(tunnel.stdout, `Túnel ${label}`, importantTunnelLine);
+  pipeWithPrefix(tunnel.stderr, `Túnel ${label}`, importantTunnelLine);
+  const publicOrigin = await waitForTunnel(tunnel);
+  await waitForApi(`${publicOrigin}/up`, tunnel, 90000);
+  return publicOrigin;
+}
 
-  const apiUrl = `${publicApiOrigin}/api`;
-  writeFileSync(path.join(root, ".env.local"), `EXPO_PUBLIC_TASKS_API_URL=${apiUrl}\n`, "utf8");
-  log(`API temporal disponible para el teléfono: ${apiUrl}`);
+async function main() {
+  requireFile(php, "No se encontró .tools/php/php.exe.");
+  requireFile(cloudflared, "No se encontró .tools/cloudflared.exe.");
+  requireFile(expensesArtisan, "No se encontró la API propia de gastos.");
+  requireFile(tasksArtisan, "No se encontró la API colaborativa de tareas.");
+  requireFile(expensesLaravelRouter, "Faltan dependencias de la API de gastos. Ejecuta composer install en backend.");
+  requireFile(tasksLaravelRouter, "Faltan dependencias de la API de tareas. Ejecuta composer install en su backend.");
+  requireFile(expoCli, "Faltan dependencias de Expo. Ejecuta npm install una vez.");
+
+  ensurePassportKeys(expensesBackend, expensesArtisan);
+  ensurePassportKeys(tasksBackend, tasksArtisan);
+
+  log("Preparando gastos, categorías y la cuenta de demostración…");
+  run(php, [expensesArtisan, "migrate", "--force"], expensesBackend);
+  run(php, [expensesArtisan, "db:seed", "--class=Database\\Seeders\\DemoExpenseIntegrationSeeder", "--force"], expensesBackend);
+
+  log("Preparando tareas y la cuenta colaborativa…");
+  run(php, [tasksArtisan, "migrate", "--force"], tasksBackend);
+  run(php, [tasksArtisan, "db:seed", "--class=Database\\Seeders\\DemoTaskIntegrationSeeder", "--force"], tasksBackend);
+
+  log("Iniciando la API de gastos en el puerto 8000 y la API de tareas en el 8001…");
+  const expensesLaravel = start(
+    php,
+    ["-S", "127.0.0.1:8000", expensesLaravelRouter],
+    path.join(expensesBackend, "public"),
+    { stdio: ["ignore", "pipe", "pipe"] }
+  );
+  const tasksLaravel = start(
+    php,
+    ["-S", "127.0.0.1:8001", tasksLaravelRouter],
+    path.join(tasksBackend, "public"),
+    { stdio: ["ignore", "pipe", "pipe"] }
+  );
+  pipeWithPrefix(expensesLaravel.stdout, "API gastos");
+  pipeWithPrefix(expensesLaravel.stderr, "API gastos");
+  pipeWithPrefix(tasksLaravel.stdout, "API tareas");
+  pipeWithPrefix(tasksLaravel.stderr, "API tareas");
+  await Promise.all([
+    waitForApi("http://127.0.0.1:8000/up", expensesLaravel),
+    waitForApi("http://127.0.0.1:8001/up", tasksLaravel),
+  ]);
+
+  log("Creando direcciones HTTPS temporales para ambas API…");
+  const [expensesApiOrigin, tasksApiOrigin] = await Promise.all([
+    openApiTunnel("http://127.0.0.1:8000", "gastos"),
+    openApiTunnel("http://127.0.0.1:8001", "tareas"),
+  ]);
+
+  const expensesApiUrl = `${expensesApiOrigin}/api`;
+  const tasksApiUrl = `${tasksApiOrigin}/api`;
+  writeFileSync(
+    path.join(root, ".env.local"),
+    `EXPO_PUBLIC_EXPENSES_API_URL=${expensesApiUrl}\nEXPO_PUBLIC_TASKS_API_URL=${tasksApiUrl}\n`,
+    "utf8"
+  );
+  log(`API de gastos disponible: ${expensesApiUrl}`);
+  log(`API de tareas disponible: ${tasksApiUrl}`);
 
   log("Iniciando Expo con túnel. Escanea el nuevo código QR con Expo Go.");
   const expo = start(process.execPath, [expoCli, "start", "--tunnel", "--clear"], root, {

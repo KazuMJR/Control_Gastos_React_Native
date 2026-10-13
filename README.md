@@ -125,7 +125,7 @@ Las pruebas cubren registro, generación y renovación de tokens, expiración, s
 - [Referencia de la API](backend/API.md).
 - [Documentación oficial de Laravel Passport 13](https://laravel.com/framework/docs/13.x/passport).
 
-## Integración colaborativa de tareas
+## Integración móvil con las API
 
 La pestaña **Tareas** consume el backend Laravel incluido en
 `Proyecto_Colaborativo/AppTest-develop/backend`. La integración permite:
@@ -144,19 +144,21 @@ npm run dev
 
 Este comando realiza automáticamente lo necesario para la demostración:
 
-- actualiza las migraciones y prepara la cuenta con datos de ejemplo;
-- inicia Laravel en el puerto `8001`;
-- crea una dirección HTTPS temporal para Laravel y la guarda en `.env.local`;
+- actualiza las migraciones y prepara las cuentas con datos de ejemplo;
+- inicia la API propia de gastos en el puerto `8000` y la API colaborativa de tareas en el `8001`;
+- crea una dirección HTTPS temporal para cada API y guarda ambas en `.env.local`;
 - abre Expo mediante un túnel con la caché limpia, evitando bloqueos de Metro en el teléfono.
 
-Escanea el código QR con Expo Go y, en la pestaña **Tareas**, pulsa **Entrar a la demostración**. No es necesario escribir correo ni contraseña. Si se necesitan para mostrar el proceso manual, son:
+Escanea el código QR con Expo Go. Los gastos del mes, el historial, las categorías y las tareas se consultan y guardan en sus respectivas API. En la pestaña **Tareas**, pulsa **Entrar a la demostración**. No es necesario escribir correo ni contraseña. Si se necesitan para mostrar el proceso manual, son:
 
 - correo: `integracion@controlgastos.test`
 - contraseña: `Tareas2026!`
 
-Los túneles permiten usar el teléfono aunque el router aísle los dispositivos. Mantén esa terminal abierta durante la demostración; al presionar `Ctrl+C` se cierran Expo, el túnel temporal de la API y Laravel. La dirección de la API cambia en cada inicio y deja de funcionar al cerrar el comando.
+Los túneles permiten usar el teléfono aunque el router aísle los dispositivos. Mantén esa terminal abierta durante la demostración; al presionar `Ctrl+C` se cierran Expo, ambos túneles y las dos API de Laravel. Las direcciones cambian en cada inicio y dejan de funcionar al cerrar el comando.
 
 El reporte se obtiene con `GET /api/tasks/progress?from=AAAA-MM-DD&to=AAAA-MM-DD` y la creación usa `POST /api/tasks`. Ambas rutas requieren `Authorization: Bearer <token>`.
+
+El historial de gastos admite el filtro `GET /api/gastos?month=AAAA-MM` y devuelve, junto con los movimientos, el total gastado, promedio, cantidad y desglose por categoría. Registrar un movimiento usa `POST /api/gastos`; ambas operaciones también requieren un token de Laravel Passport.
 
 El catálogo externo conserva los precios originales de la API internamente, pero los muestra y registra en quetzales usando el tipo de cambio de referencia `USD 1 = Q 7.75`.
 

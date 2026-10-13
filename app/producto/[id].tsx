@@ -14,12 +14,14 @@ import {
 } from "react-native";
 
 import { AppContext, USD_TO_GTQ } from "../../context/AppContext";
+import { expenseApiErrorMessage } from "../../services/expenses-api";
 import { getExternalProduct, Product } from "../../services/external-api";
 
 export default function ProductoDetalleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState("");
   const { agregarDeseado, comprarDeseado, saldo } = useContext(AppContext);
 
@@ -116,22 +118,28 @@ export default function ProductoDetalleScreen() {
     });
   };
 
-  const registrarCompra = () => {
-    const purchased = comprarDeseado(compra);
-    if (!purchased) {
-      Alert.alert("Saldo insuficiente", `Necesitas Q ${compra.precioQuetzales.toFixed(2)} y tienes Q ${saldo.toFixed(2)}.`);
-      return;
-    }
+  const registrarCompra = async () => {
+    setPurchasing(true);
+    try {
+      const purchased = await comprarDeseado(compra);
+      if (!purchased) {
+        Alert.alert("Saldo insuficiente", `Necesitas Q ${compra.precioQuetzales.toFixed(2)} y tienes Q ${saldo.toFixed(2)}.`);
+        return;
+      }
 
-    // Confirma la compra y el descuento aplicado al saldo.
-    router.push({
-      pathname: "/resultado",
-      params: {
-        title: "Compra registrada",
-        message: `Se registraron Q ${compra.precioQuetzales.toFixed(2)} como gasto y se actualizó tu saldo.`,
-        returnTo: "/(tabs)",
-      },
-    });
+      router.push({
+        pathname: "/resultado",
+        params: {
+          title: "Compra guardada en la API",
+          message: `Se registraron Q ${compra.precioQuetzales.toFixed(2)} en tu historial de gastos.`,
+          returnTo: "/(tabs)",
+        },
+      });
+    } catch (purchaseError) {
+      Alert.alert("No se pudo registrar", expenseApiErrorMessage(purchaseError));
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   return (
@@ -157,8 +165,12 @@ export default function ProductoDetalleScreen() {
         <Pressable onPress={guardarDeseado} style={styles.desiredButton}>
           <Text style={styles.desiredButtonText}>Agregar a compras deseadas</Text>
         </Pressable>
-        <Pressable onPress={registrarCompra} style={styles.buyButton}>
-          <Text style={styles.buyButtonText}>Registrar compra como gasto</Text>
+        <Pressable disabled={purchasing} onPress={registrarCompra} style={styles.buyButton}>
+          {purchasing ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.buyButtonText}>Registrar compra como gasto</Text>
+          )}
         </Pressable>
       </View>
     </ScrollView>
