@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoriaController;
 use App\Http\Controllers\Api\GastoController;
+use App\Http\Controllers\Api\PagoPendienteController;
+use App\Http\Controllers\Api\PlanMensualController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Passport\Http\Middleware\CheckToken;
@@ -41,4 +43,18 @@ Route::middleware(['auth:api', 'throttle:api'])->group(function () {
         ->middleware(CheckToken::using('gastos.write'));
     Route::delete('/gastos/{gasto}', [GastoController::class, 'destroy'])
         ->middleware(CheckToken::using('gastos.delete'));
+
+    Route::get('/plan-mensual', [PlanMensualController::class, 'show'])
+        ->middleware(CheckToken::using('plan.read'));
+    Route::put('/plan-mensual', [PlanMensualController::class, 'update'])
+        ->middleware(CheckToken::using('plan.write'));
+
+    Route::post('/pagos-pendientes', [PagoPendienteController::class, 'store'])
+        ->middleware(CheckToken::using('plan.write'));
+    Route::match(['put', 'patch'], '/pagos-pendientes/{pagoPendiente}', [PagoPendienteController::class, 'update'])
+        ->middleware(CheckToken::using('plan.write'));
+    Route::post('/pagos-pendientes/{pagoPendiente}/pagar', [PagoPendienteController::class, 'pay'])
+        ->middleware(CheckToken::using('plan.write'));
+    Route::delete('/pagos-pendientes/{pagoPendiente}', [PagoPendienteController::class, 'destroy'])
+        ->middleware(CheckToken::using('plan.write'));
 });

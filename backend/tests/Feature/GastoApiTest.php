@@ -23,6 +23,8 @@ class GastoApiTest extends TestCase
         'gastos.read',
         'gastos.write',
         'gastos.delete',
+        'plan.read',
+        'plan.write',
     ];
 
     protected function setUp(): void
@@ -194,6 +196,115 @@ class GastoApiTest extends TestCase
             'id' => $gasto->id,
             'descripcion' => 'Gasto privado',
         ]);
+    }
+
+    public function test_monthly_budget_and_category_allocations_are_persisted(): void
+    {
+        $user = User::factory()->create();
+        $food = Categoria::create(['nombre' => 'Alimentación', 'color' => '#F97316']);
+        $services = Categoria::create(['nombre' => 'Servicios', 'color' => '#0891B2']);
+        $user->gastos()->create([
+            'categoria_id' => $food->id,
+            'descripcion' => 'Supermercado',
+            'monto' => 250,
+            'fecha_gasto' => '2026-10-05',
+        ]);
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+        $this->putJson('/api/plan-mensual', [
+            'month' => '2026-10',
+            'amount' => 2000,
+            'allocations' => [
+                ['category_id' => $food->id, 'amount' => 700],
+                ['category_id' => $services->id, 'amount' => 500],
+            ],
+        ])->assertOk()
+            ->assertJsonPath('budget_amount', 2000)
+            ->assertJsonPath('summary.spent_amount', 250)
+            ->assertJsonPath('summary.available_amount', 1750)
+            ->assertJsonPath('summary.allocated_amount', 1200)
+            ->assertJsonCount(2, 'allocations');
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+        $this->getJson('/api/plan-mensual?month=2026-10')
+            ->assertOk()
+            ->assertJsonPath('budget_amount', 2000)
+            ->assertJsonPath('allocations.0.categoria.nombre', 'Alimentación');
+    }
+
+    public function test_allocations_cannot_exceed_the_monthly_budget(): void
+    {
+        $user = User::factory()->create();
+        $category = Categoria::create(['nombre' => 'Servicios', 'color' => '#0891B2']);
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+        $this->putJson('/api/plan-mensual', [
+            'month' => '2026-10',
+            'amount' => 500,
+            'allocations' => [
+                ['category_id' => $category->id, 'amount' => 600],
+            ],
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('allocations');
+    }
+
+    public function test_pending_payment_is_counted_and_becomes_an_expense_when_paid(): void
+    {
+        $user = User::factory()->create();
+        $category = Categoria::create(['nombre' => 'Servicios', 'color' => '#0891B2']);
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+        $pendingResponse = $this->postJson('/api/pagos-pendientes', [
+            'categoria_id' => $category->id,
+            'descripcion' => 'Servicio de electricidad',
+            'monto' => 175.50,
+            'fecha_vencimiento' => '2026-10-20',
+            'notas' => 'Pago mensual',
+        ])->assertCreated()
+            ->assertJsonPath('estado', 'pendiente');
+
+        $paymentId = $pendingResponse->json('id');
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+        $this->getJson('/api/plan-mensual?month=2026-10')
+            ->assertOk()
+            ->assertJsonPath('summary.pending_amount', 175.5)
+            ->assertJsonPath('summary.projected_available_amount', 2324.5)
+            ->assertJsonCount(1, 'pending_payments');
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+        $this->postJson("/api/pagos-pendientes/{$paymentId}/pagar", [
+            'payment_date' => '2026-10-12',
+        ])->assertOk()
+            ->assertJsonPath('estado', 'pagado')
+            ->assertJsonPath('gasto.descripcion', 'Servicio de electricidad');
+
+        $this->assertDatabaseHas('gastos', [
+            'user_id' => $user->id,
+            'descripcion' => 'Servicio de electricidad',
+            'monto' => 175.50,
+        ]);
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+        $this->postJson("/api/pagos-pendientes/{$paymentId}/pagar")
+            ->assertConflict();
+    }
+
+    public function test_a_user_cannot_manage_another_users_pending_payment(): void
+    {
+        $owner = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $payment = $owner->pagosPendientes()->create([
+            'descripcion' => 'Pago privado',
+            'monto' => 100,
+            'fecha_vencimiento' => '2026-10-15',
+        ]);
+
+        Passport::actingAs($otherUser, self::FULL_SCOPES);
+        $this->postJson("/api/pagos-pendientes/{$payment->id}/pagar")->assertForbidden();
+
+        Passport::actingAs($otherUser, self::FULL_SCOPES);
+        $this->deleteJson("/api/pagos-pendientes/{$payment->id}")->assertForbidden();
     }
 
     public function test_login_is_blocked_after_five_attempts_per_minute(): void

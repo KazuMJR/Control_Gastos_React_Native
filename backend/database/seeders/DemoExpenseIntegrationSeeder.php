@@ -91,5 +91,32 @@ class DemoExpenseIntegrationSeeder extends Seeder
                 ]);
             }
         }
+
+        $budget = $user->presupuestosMensuales()->firstOrCreate(
+            ['mes' => $month->format('Y-m')],
+            ['monto' => 2500],
+        );
+        collect([
+            ['categoria_id' => $categories['Alimentación']->id, 'monto' => 700],
+            ['categoria_id' => $categories['Transporte']->id, 'monto' => 350],
+            ['categoria_id' => $categories['Universidad']->id, 'monto' => 500],
+            ['categoria_id' => $categories['Servicios']->id, 'monto' => 450],
+            ['categoria_id' => $categories['Compras']->id, 'monto' => 300],
+        ])->each(fn (array $allocation) => $budget->distribuciones()->firstOrCreate(
+            ['categoria_id' => $allocation['categoria_id']],
+            ['monto' => $allocation['monto']],
+        ));
+
+        $user->pagosPendientes()->firstOrCreate(
+            [
+                'descripcion' => 'Servicio de electricidad',
+                'fecha_vencimiento' => $month->copy()->day(min(20, $month->daysInMonth))->toDateString(),
+            ],
+            [
+                'categoria_id' => $categories['Servicios']->id,
+                'monto' => 175,
+                'notas' => 'Pago planificado del mes.',
+            ],
+        );
     }
 }

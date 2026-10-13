@@ -39,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
             'gastos.read' => 'Consultar gastos propios',
             'gastos.write' => 'Crear y actualizar gastos propios',
             'gastos.delete' => 'Eliminar gastos propios',
+            'plan.read' => 'Consultar presupuesto y pagos pendientes',
+            'plan.write' => 'Administrar presupuesto y pagos pendientes',
         ]);
 
         // Cuando no se solicitan scopes, el token queda limitado a operaciones de lectura.
@@ -46,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
             'perfil.read',
             'categorias.read',
             'gastos.read',
+            'plan.read',
         ]);
 
         // Login and registration share a strict limit to slow credential attacks.

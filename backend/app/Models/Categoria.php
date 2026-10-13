@@ -15,4 +15,14 @@ class Categoria extends Model
     {
         return $this->hasMany(Gasto::class);
     }
+
+    public function distribucionesPresupuesto()
+    {
+        return $this->hasMany(DistribucionPresupuesto::class);
+    }
+
+    public function pagosPendientes()
+    {
+        return $this->hasMany(PagoPendiente::class);
+    }
 }

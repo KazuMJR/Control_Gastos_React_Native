@@ -8,6 +8,8 @@ Backend JSON creado con Laravel 13 y Laravel Passport. Los recursos CRUD se defi
 - Las demás rutas requieren `Authorization: Bearer {token}`.
 - Cada operación protegida exige además un scope de lectura, escritura o eliminación.
 - `categorias` administra categorías y `gastos` entrega únicamente los gastos del usuario autenticado.
+- `plan-mensual` conserva el presupuesto y su distribución por categorías para cada mes.
+- `pagos-pendientes` registra compromisos futuros y puede convertirlos de forma segura en gastos reales.
 - El acceso a autenticación está limitado a 5 solicitudes por minuto por IP y el resto de la API a 60 por minuto por usuario/IP.
 
 ## Ejecutar localmente
@@ -46,11 +48,20 @@ scope: {{fullScopes}}
 
 La respuesta contiene `access_token`, `refresh_token` y `expires_in`. Los access tokens duran una hora. El script guarda ambos tokens y **Renovar token OAuth** usa `grant_type=refresh_token` para obtener una sesión nueva.
 
-Los scopes disponibles son `perfil.read`, `categorias.read`, `categorias.write`, `categorias.delete`, `gastos.read`, `gastos.write` y `gastos.delete`. Un token autenticado sin el permiso requerido recibe `403 Forbidden`.
+Los scopes disponibles son `perfil.read`, `categorias.read`, `categorias.write`, `categorias.delete`, `gastos.read`, `gastos.write`, `gastos.delete`, `plan.read` y `plan.write`. Un token autenticado sin el permiso requerido recibe `403 Forbidden`.
 
-## Alcance de la entrega
+## Planificación mensual
 
-Por indicacion de la tarea, la app Expo no consume todavia este backend. Laravel se prueba de forma local con Postman; la app movil consume el catalogo externo DummyJSON.
+La aplicación Expo consume este backend para mantener sincronizados los gastos y el plan mensual. Las rutas principales son:
+
+- `GET /api/plan-mensual?month=AAAA-MM`: devuelve presupuesto, distribución, gasto real, pendientes y saldo proyectado.
+- `PUT /api/plan-mensual`: guarda el presupuesto y las asignaciones por categoría.
+- `POST /api/pagos-pendientes`: crea un compromiso de pago.
+- `PATCH /api/pagos-pendientes/{id}`: modifica un pendiente que todavía no se ha pagado.
+- `POST /api/pagos-pendientes/{id}/pagar`: crea el gasto correspondiente y marca el pendiente como pagado dentro de una transacción.
+- `DELETE /api/pagos-pendientes/{id}`: elimina un pendiente que todavía no se ha pagado.
+
+La suma distribuida entre categorías no puede superar el presupuesto. Los gastos reales sí pueden superar el límite para que el historial represente lo ocurrido; en ese caso, los saldos disponible y proyectado serán negativos.
 
 ## Prueba en Postman
 

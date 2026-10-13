@@ -24,6 +24,16 @@ class User extends Authenticatable implements OAuthenticatable
         return $this->hasMany(Gasto::class);
     }
 
+    public function presupuestosMensuales()
+    {
+        return $this->hasMany(PresupuestoMensual::class);
+    }
+
+    public function pagosPendientes()
+    {
+        return $this->hasMany(PagoPendiente::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
