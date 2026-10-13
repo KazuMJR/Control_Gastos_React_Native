@@ -130,7 +130,7 @@ export default function ProductoDetalleScreen() {
       router.push({
         pathname: "/resultado",
         params: {
-          title: "Compra guardada en la API",
+          title: "Compra registrada",
           message: `Se registraron Q ${compra.precioQuetzales.toFixed(2)} en tu historial de gastos.`,
           returnTo: "/(tabs)",
         },

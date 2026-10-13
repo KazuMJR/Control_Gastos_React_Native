@@ -14,7 +14,7 @@ export default function DeseadosScreen() {
     setPurchasingId(item.id);
     try {
       if (await comprarDeseado(item)) {
-        Alert.alert("Compra registrada", `${item.titulo} fue guardado en la API de gastos.`);
+        Alert.alert("Compra registrada", `${item.titulo} fue agregado a tu historial de gastos.`);
         return;
       }
 

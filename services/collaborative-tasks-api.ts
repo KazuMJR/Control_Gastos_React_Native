@@ -180,8 +180,8 @@ export function collaborativeApiErrorMessage(error: unknown) {
   }
 
   if (!error.response) {
-    return `No fue posible conectar con ${COLLABORATIVE_TASKS_API_URL}. Ejecuta npm run dev, espera que ambos túneles indiquen que están listos y mantén la terminal abierta.`;
+    return "No fue posible actualizar las tareas. Ejecuta npm run dev, espera a que termine de iniciar y mantén la terminal abierta.";
   }
 
-  return `La API respondió con el estado ${error.response.status}.`;
+  return `No se pudo completar la operación (estado ${error.response.status}).`;
 }

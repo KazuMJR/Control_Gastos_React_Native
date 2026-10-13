@@ -57,7 +57,7 @@ export default function NuevoGastoScreen() {
       router.push({
         pathname: "/resultado",
         params: {
-          title: "Gasto guardado en la API",
+          title: "Gasto registrado",
           message: `Se registró ${descripcion} por Q ${montoNumero.toFixed(2)}. Ya aparece en tu historial mensual.`,
           returnTo: "/(tabs)/estadisticas",
         },
@@ -74,9 +74,9 @@ export default function NuevoGastoScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.headingRow}>
           <View>
-            <Text style={styles.eyebrow}>REGISTRO SEGURO</Text>
+            <Text style={styles.eyebrow}>NUEVO MOVIMIENTO</Text>
             <Text style={styles.title}>Nuevo gasto</Text>
-            <Text style={styles.subtitle}>Se guardará directamente en Laravel mediante Passport.</Text>
+            <Text style={styles.subtitle}>Completa los datos para añadirlo a tu historial.</Text>
           </View>
           <View style={styles.headingIcon}>
             <Ionicons name="receipt-outline" size={28} color="#2563EB" />
@@ -90,7 +90,7 @@ export default function NuevoGastoScreen() {
           </View>
           <View style={styles.apiBadge}>
             <View style={[styles.statusDot, gastosApiError && styles.statusDotError]} />
-            <Text style={styles.apiBadgeText}>{gastosApiError ? "Sin conexión" : "API activa"}</Text>
+            <Text style={styles.apiBadgeText}>{gastosApiError ? "Sin conexión" : "Listo"}</Text>
           </View>
         </View>
 
@@ -182,7 +182,7 @@ export default function NuevoGastoScreen() {
             ) : (
               <>
                 <Ionicons name="cloud-upload-outline" size={21} color="#FFFFFF" />
-                <Text style={styles.saveButtonText}>Guardar gasto en la API</Text>
+                <Text style={styles.saveButtonText}>Guardar gasto</Text>
               </>
             )}
           </Pressable>

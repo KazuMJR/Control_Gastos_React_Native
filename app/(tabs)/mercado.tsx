@@ -178,10 +178,10 @@ export default function MercadoScreen() {
         <View style={styles.loginCard}>
           <Ionicons name="cart-outline" size={42} color="#2563EB" />
           <Text style={styles.title}>Acceso al catalogo</Text>
-          <Text style={styles.description}>Autenticate con la API externa para obtener su token y consultar los productos.</Text>
+          <Text style={styles.description}>Inicia sesión para explorar el catálogo de productos.</Text>
           <TextInput autoCapitalize="none" onChangeText={setUsername} placeholder="Usuario externo" style={styles.input} value={username} />
           <TextInput onChangeText={setPassword} placeholder="Contrasena externa" secureTextEntry style={styles.input} value={password} />
-          <Text style={styles.hint}>Demo: emilys / emilyspass</Text>
+          <Text style={styles.hint}>Cuenta disponible: emilys / emilyspass</Text>
           {isLocked ? (
             <Text style={styles.lockMessage}>
               Acceso bloqueado. Podrás intentarlo de nuevo en {Math.ceil(remainingLockMs / 1000)} segundos.
@@ -227,7 +227,7 @@ export default function MercadoScreen() {
       {loading && products.length === 0 ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#2563EB" />
-          <Text style={styles.loadingText}>Consultando la API…</Text>
+          <Text style={styles.loadingText}>Cargando catálogo…</Text>
         </View>
       ) : (
         <FlatList

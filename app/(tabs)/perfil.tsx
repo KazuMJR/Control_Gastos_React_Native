@@ -1,14 +1,15 @@
-import React, { useContext, useState } from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
+import { useContext, useState } from "react";
 import {
-  View,
-  Text,
- Image,
-  Switch,
-  Pressable,
   Alert,
+  Pressable,
+  ScrollView,
   StyleSheet,
+  Switch,
+  Text,
   TextInput,
+  View,
 } from "react-native";
 
 import { AppContext } from "../../context/AppContext";
@@ -26,7 +27,7 @@ export default function PerfilScreen() {
   } = useContext(AppContext);
 
   const [notificaciones, setNotificaciones] = useState(true);
-
+  const [showAbout, setShowAbout] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState(nombre);
   const [nuevoCorreo, setNuevoCorreo] = useState(correo);
   const [nuevoSaldo, setNuevoSaldo] = useState(presupuestoMensual.toFixed(2));
@@ -34,8 +35,8 @@ export default function PerfilScreen() {
   const guardarPerfil = () => {
     const saldoNumero = Number(nuevoSaldo.replace(",", "."));
 
-    if (nuevoNombre.trim() === "" || nuevoCorreo.trim() === "") {
-      Alert.alert("Error", "Complete nombre y correo.");
+    if (!nuevoNombre.trim() || !nuevoCorreo.trim()) {
+      Alert.alert("Datos incompletos", "Completa el nombre y el correo electrónico.");
       return;
     }
 
@@ -47,10 +48,8 @@ export default function PerfilScreen() {
       return;
     }
 
-    setNombre(nuevoNombre);
-    setCorreo(nuevoCorreo);
-
-    // Confirma que los datos personales y el saldo fueron actualizados.
+    setNombre(nuevoNombre.trim());
+    setCorreo(nuevoCorreo.trim());
     router.push({
       pathname: "/resultado",
       params: {
@@ -63,29 +62,23 @@ export default function PerfilScreen() {
 
   const confirmarRestablecer = () => {
     Alert.alert(
-      "Restablecer aplicación",
-      "¿Deseas restaurar el perfil, el presupuesto y la lista de deseos? Los gastos guardados en la API se conservarán.",
+      "Restablecer preferencias",
+      "Se restaurarán el perfil, el presupuesto y la lista de deseos. Tu historial de gastos se conservará.",
       [
+        { text: "Cancelar", style: "cancel" },
         {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Sí",
+          text: "Restablecer",
           style: "destructive",
           onPress: () => {
             restablecerAplicacion();
-
             setNuevoNombre("Jason");
             setNuevoCorreo("jason@email.com");
             setNuevoSaldo("2500.00");
-
-            // Informa el resultado despues de confirmar el restablecimiento.
             router.push({
               pathname: "/resultado",
               params: {
-                title: "Aplicación restablecida",
-                message: "Se restauraron el perfil y las preferencias. Tu historial de gastos permanece guardado en la API.",
+                title: "Preferencias restablecidas",
+                message: "El perfil volvió a sus valores iniciales. Tu historial permanece disponible.",
                 returnTo: "/(tabs)/perfil",
               },
             });
@@ -96,145 +89,191 @@ export default function PerfilScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Image
-        source={{
-          uri: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-        }}
-        style={styles.avatar}
-      />
-
-      <Text style={styles.title}>Mi Perfil</Text>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Nombre"
-        value={nuevoNombre}
-        onChangeText={setNuevoNombre}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Presupuesto mensual en quetzales"
-        keyboardType="decimal-pad"
-        value={nuevoSaldo}
-        onChangeText={setNuevoSaldo}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Correo electrónico"
-        keyboardType="email-address"
-        value={nuevoCorreo}
-        onChangeText={setNuevoCorreo}
-      />
-
-      <View style={styles.switchContainer}>
-        <Text style={styles.switchText}>
-          Recibir notificaciones
-        </Text>
-
-        <Switch
-          value={notificaciones}
-          onValueChange={setNotificaciones}
-        />
+    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" style={styles.container}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.eyebrow}>TU CUENTA</Text>
+          <Text style={styles.title}>Perfil</Text>
+          <Text style={styles.subtitle}>Administra tus datos y preferencias.</Text>
+        </View>
+        <View style={styles.avatar}>
+          <Ionicons name="person" size={30} color="#1D4ED8" />
+        </View>
       </View>
 
-      <Pressable
-        style={styles.button}
-        onPress={guardarPerfil}
-      >
-        <Text style={styles.buttonText}>
-          Guardar Cambios
-        </Text>
-      </Pressable>
+      <View style={styles.identityCard}>
+        <View style={styles.identityIcon}>
+          <Text style={styles.initial}>{(nuevoNombre.trim()[0] || "U").toUpperCase()}</Text>
+        </View>
+        <View style={styles.identityInfo}>
+          <Text numberOfLines={1} style={styles.identityName}>{nuevoNombre || "Usuario"}</Text>
+          <Text numberOfLines={1} style={styles.identityEmail}>{nuevoCorreo || "Sin correo"}</Text>
+        </View>
+        <View style={styles.activeBadge}>
+          <View style={styles.activeDot} />
+          <Text style={styles.activeText}>Activo</Text>
+        </View>
+      </View>
 
-      <Pressable
-        style={styles.resetButton}
-        onPress={confirmarRestablecer}
-      >
-        <Text style={styles.buttonText}>
-          Restablecer Aplicación
-        </Text>
-      </Pressable>
+      <Text style={styles.sectionLabel}>Datos personales</Text>
+      <View style={styles.formCard}>
+        <Text style={styles.label}>Nombre</Text>
+        <View style={styles.inputRow}>
+          <Ionicons name="person-outline" size={19} color="#64748B" />
+          <TextInput onChangeText={setNuevoNombre} placeholder="Nombre" style={styles.input} value={nuevoNombre} />
+        </View>
 
-    </View>
+        <Text style={styles.label}>Correo electrónico</Text>
+        <View style={styles.inputRow}>
+          <Ionicons name="mail-outline" size={19} color="#64748B" />
+          <TextInput
+            autoCapitalize="none"
+            keyboardType="email-address"
+            onChangeText={setNuevoCorreo}
+            placeholder="Correo electrónico"
+            style={styles.input}
+            value={nuevoCorreo}
+          />
+        </View>
+
+        <Text style={styles.label}>Presupuesto mensual</Text>
+        <View style={styles.inputRow}>
+          <Text style={styles.currency}>Q</Text>
+          <TextInput
+            keyboardType="decimal-pad"
+            onChangeText={setNuevoSaldo}
+            placeholder="0.00"
+            style={styles.input}
+            value={nuevoSaldo}
+          />
+        </View>
+        <Text style={styles.budgetHint}>Este mes llevas Q {totalGastadoMes.toFixed(2)} en gastos.</Text>
+
+        <View style={styles.preferenceRow}>
+          <View style={styles.preferenceInfo}>
+            <View style={styles.preferenceIcon}>
+              <Ionicons name="notifications-outline" size={19} color="#7C3AED" />
+            </View>
+            <View>
+              <Text style={styles.preferenceTitle}>Notificaciones</Text>
+              <Text style={styles.preferenceText}>Recordatorios y novedades</Text>
+            </View>
+          </View>
+          <Switch onValueChange={setNotificaciones} value={notificaciones} />
+        </View>
+
+        <Pressable onPress={guardarPerfil} style={({ pressed }) => [styles.saveButton, pressed && styles.buttonPressed]}>
+          <Ionicons name="checkmark-circle-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.saveButtonText}>Guardar cambios</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.sectionLabel}>Información</Text>
+      <View style={styles.aboutCard}>
+        <Pressable onPress={() => setShowAbout((current) => !current)} style={styles.aboutHeader}>
+          <View style={styles.aboutHeaderInfo}>
+            <View style={styles.aboutIcon}>
+              <Ionicons name="information-circle-outline" size={23} color="#2563EB" />
+            </View>
+            <View>
+              <Text style={styles.aboutTitle}>Acerca de la aplicación</Text>
+              <Text style={styles.aboutSubtitle}>Conoce los servicios utilizados</Text>
+            </View>
+          </View>
+          <Ionicons name={showAbout ? "chevron-up" : "chevron-down"} size={20} color="#64748B" />
+        </Pressable>
+
+        {showAbout ? (
+          <View style={styles.aboutContent}>
+            <Text style={styles.aboutDescription}>
+              Control de Gastos reúne tus finanzas, planificación y compras en una experiencia sencilla. Los datos se consultan desde tres servicios especializados.
+            </Text>
+            <View style={styles.serviceRow}>
+              <View style={[styles.serviceIcon, { backgroundColor: "#DCFCE7" }]}>
+                <Ionicons name="wallet-outline" size={20} color="#15803D" />
+              </View>
+              <View style={styles.serviceInfo}>
+                <Text style={styles.serviceTitle}>Gastos y categorías</Text>
+                <Text style={styles.serviceText}>Laravel Passport protege el historial, los totales mensuales y los nuevos movimientos.</Text>
+              </View>
+            </View>
+            <View style={styles.serviceRow}>
+              <View style={[styles.serviceIcon, { backgroundColor: "#F3E8FF" }]}>
+                <Ionicons name="checkbox-outline" size={20} color="#7C3AED" />
+              </View>
+              <View style={styles.serviceInfo}>
+                <Text style={styles.serviceTitle}>Tareas compartidas</Text>
+                <Text style={styles.serviceText}>Un servicio colaborativo permite registrar tareas y consultar el progreso por fechas y grupos.</Text>
+              </View>
+            </View>
+            <View style={styles.serviceRow}>
+              <View style={[styles.serviceIcon, { backgroundColor: "#DBEAFE" }]}>
+                <Ionicons name="storefront-outline" size={20} color="#2563EB" />
+              </View>
+              <View style={styles.serviceInfo}>
+                <Text style={styles.serviceTitle}>Catálogo de productos</Text>
+                <Text style={styles.serviceText}>El mercado utiliza un catálogo externo, presenta los productos en español y convierte los precios a quetzales.</Text>
+              </View>
+            </View>
+            <Text style={styles.version}>Versión 1.0.0 · Expo SDK 57</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Pressable onPress={confirmarRestablecer} style={styles.resetButton}>
+        <Ionicons name="refresh-outline" size={19} color="#DC2626" />
+        <Text style={styles.resetText}>Restablecer preferencias</Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-
-  container: {
-    flex: 1,
-    backgroundColor: "#F4F6F8",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#1E3A8A",
-    marginBottom: 25,
-  },
-
-  input: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    padding: 15,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-
-  switchContainer: {
-    width: "100%",
-    backgroundColor: "#FFFFFF",
-    padding: 15,
-    borderRadius: 10,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 30,
-  },
-
-  switchText: {
-    fontSize: 16,
-    color: "#333",
-  },
-
-  button: {
-    width: "100%",
-    backgroundColor: "#2563EB",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-    marginBottom: 15,
-  },
-
-  resetButton: {
-    width: "100%",
-    backgroundColor: "#DC2626",
-    padding: 15,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-
-
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
+  container: { backgroundColor: "#F1F5F9", flex: 1 },
+  content: { padding: 18, paddingBottom: 42 },
+  header: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between", marginBottom: 17 },
+  eyebrow: { color: "#2563EB", fontSize: 11, fontWeight: "900", letterSpacing: 1.15 },
+  title: { color: "#0F172A", fontSize: 30, fontWeight: "900", marginTop: 3 },
+  subtitle: { color: "#64748B", marginTop: 5 },
+  avatar: { alignItems: "center", backgroundColor: "#DBEAFE", borderRadius: 17, height: 54, justifyContent: "center", width: 54 },
+  identityCard: { alignItems: "center", backgroundColor: "#172554", borderRadius: 19, flexDirection: "row", marginBottom: 21, padding: 17 },
+  identityIcon: { alignItems: "center", backgroundColor: "#3B82F6", borderRadius: 21, height: 52, justifyContent: "center", width: 52 },
+  initial: { color: "#FFFFFF", fontSize: 23, fontWeight: "900" },
+  identityInfo: { flex: 1, marginHorizontal: 12 },
+  identityName: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
+  identityEmail: { color: "#BFDBFE", fontSize: 11, marginTop: 3 },
+  activeBadge: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: 14, flexDirection: "row", gap: 5, paddingHorizontal: 9, paddingVertical: 7 },
+  activeDot: { backgroundColor: "#4ADE80", borderRadius: 4, height: 8, width: 8 },
+  activeText: { color: "#DBEAFE", fontSize: 10, fontWeight: "800" },
+  sectionLabel: { color: "#334155", fontSize: 12, fontWeight: "900", letterSpacing: 0.7, marginBottom: 8, marginLeft: 2, textTransform: "uppercase" },
+  formCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 18, borderWidth: 1, marginBottom: 21, padding: 17 },
+  label: { color: "#475569", fontSize: 11, fontWeight: "900", marginBottom: 6, textTransform: "uppercase" },
+  inputRow: { alignItems: "center", backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 11, borderWidth: 1, flexDirection: "row", marginBottom: 14, paddingHorizontal: 12 },
+  input: { color: "#0F172A", flex: 1, fontSize: 14, paddingHorizontal: 10, paddingVertical: 12 },
+  currency: { color: "#15803D", fontSize: 17, fontWeight: "900" },
+  budgetHint: { color: "#64748B", fontSize: 11, marginBottom: 17, marginTop: -5 },
+  preferenceRow: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingBottom: 16, paddingTop: 16 },
+  preferenceInfo: { alignItems: "center", flexDirection: "row", gap: 10 },
+  preferenceIcon: { alignItems: "center", backgroundColor: "#F3E8FF", borderRadius: 11, height: 38, justifyContent: "center", width: 38 },
+  preferenceTitle: { color: "#334155", fontSize: 13, fontWeight: "900" },
+  preferenceText: { color: "#94A3B8", fontSize: 10, marginTop: 2 },
+  saveButton: { alignItems: "center", backgroundColor: "#2563EB", borderRadius: 11, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 50 },
+  saveButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "900" },
+  buttonPressed: { opacity: 0.82 },
+  aboutCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 18, borderWidth: 1, overflow: "hidden" },
+  aboutHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", padding: 15 },
+  aboutHeaderInfo: { alignItems: "center", flexDirection: "row", gap: 11 },
+  aboutIcon: { alignItems: "center", backgroundColor: "#EFF6FF", borderRadius: 13, height: 43, justifyContent: "center", width: 43 },
+  aboutTitle: { color: "#334155", fontSize: 14, fontWeight: "900" },
+  aboutSubtitle: { color: "#94A3B8", fontSize: 10, marginTop: 2 },
+  aboutContent: { borderTopColor: "#E2E8F0", borderTopWidth: 1, padding: 16 },
+  aboutDescription: { color: "#64748B", fontSize: 12, lineHeight: 19, marginBottom: 15 },
+  serviceRow: { alignItems: "flex-start", flexDirection: "row", marginBottom: 14 },
+  serviceIcon: { alignItems: "center", borderRadius: 12, height: 40, justifyContent: "center", width: 40 },
+  serviceInfo: { flex: 1, marginLeft: 11 },
+  serviceTitle: { color: "#334155", fontSize: 13, fontWeight: "900" },
+  serviceText: { color: "#64748B", fontSize: 11, lineHeight: 17, marginTop: 3 },
+  version: { color: "#94A3B8", fontSize: 10, marginTop: 3, textAlign: "center" },
+  resetButton: { alignItems: "center", alignSelf: "center", flexDirection: "row", gap: 7, marginTop: 20, padding: 11 },
+  resetText: { color: "#DC2626", fontSize: 13, fontWeight: "800" },
 });

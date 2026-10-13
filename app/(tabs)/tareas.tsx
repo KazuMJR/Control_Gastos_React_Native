@@ -18,7 +18,6 @@ import {
   clearCollaborativeToken,
   COLLABORATIVE_DEMO_EMAIL,
   COLLABORATIVE_DEMO_PASSWORD,
-  COLLABORATIVE_TASKS_API_URL,
   collaborativeApiErrorMessage,
   CollaborativeCategory,
   createCollaborativeTask,
@@ -86,6 +85,7 @@ export default function CollaborativeTasksScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [savingTask, setSavingTask] = useState(false);
   const [activeSection, setActiveSection] = useState<TaskSection>("progress");
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -137,6 +137,7 @@ export default function CollaborativeTasksScreen() {
       const dashboard = await fetchDashboard(from, to);
       setCategories(dashboard.categories);
       setProgress(dashboard.progress);
+      setShowFilters(false);
     } catch (error) {
       Alert.alert("No se pudo consultar el progreso", collaborativeApiErrorMessage(error));
     } finally {
@@ -169,7 +170,7 @@ export default function CollaborativeTasksScreen() {
       setPassword("");
       setSession("authenticated");
     } catch (error) {
-      Alert.alert("No se pudo iniciar la integración", collaborativeApiErrorMessage(error));
+      Alert.alert("No se pudo iniciar sesión", collaborativeApiErrorMessage(error));
     } finally {
       setAuthenticating(false);
     }
@@ -184,7 +185,7 @@ export default function CollaborativeTasksScreen() {
       setProgress(dashboard.progress);
       setSession("authenticated");
     } catch (error) {
-      Alert.alert("No se pudo abrir la demostración", collaborativeApiErrorMessage(error));
+      Alert.alert("No se pudo abrir la cuenta", collaborativeApiErrorMessage(error));
     } finally {
       setAuthenticating(false);
     }
@@ -209,7 +210,7 @@ export default function CollaborativeTasksScreen() {
       const dashboard = await fetchDashboard(from, to);
       setCategories(dashboard.categories);
       setProgress(dashboard.progress);
-      Alert.alert("Tarea registrada", `La API creó correctamente “${createdTask.title}”.`);
+      Alert.alert("Tarea registrada", `Se creó correctamente “${createdTask.title}”.`);
       setActiveSection("progress");
     } catch (error) {
       Alert.alert("No se pudo registrar la tarea", collaborativeApiErrorMessage(error));
@@ -255,7 +256,7 @@ export default function CollaborativeTasksScreen() {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#2563EB" />
-        <Text style={styles.mutedText}>Conectando con la API de tareas…</Text>
+        <Text style={styles.mutedText}>Preparando tus tareas…</Text>
       </View>
     );
   }
@@ -268,13 +269,13 @@ export default function CollaborativeTasksScreen() {
       >
         <ScrollView contentContainerStyle={styles.authContent} keyboardShouldPersistTaps="handled">
           <View style={styles.integrationBadge}>
-            <Ionicons name="git-network-outline" size={22} color="#1D4ED8" />
-            <Text style={styles.integrationBadgeText}>API colaborativa Laravel Passport</Text>
+            <Ionicons name="people-outline" size={22} color="#1D4ED8" />
+            <Text style={styles.integrationBadgeText}>ESPACIO COMPARTIDO</Text>
           </View>
 
-          <Text style={styles.authTitle}>{registerMode ? "Crear cuenta de tareas" : "Conectar con tareas"}</Text>
+          <Text style={styles.authTitle}>{registerMode ? "Crear una cuenta" : "Organiza tus tareas"}</Text>
           <Text style={styles.authDescription}>
-            Usa una cuenta del proyecto de tu compañero para consultar el progreso y registrar tareas desde esta aplicación.
+            Revisa el avance por fechas, consulta cada grupo y registra nuevas actividades desde un solo lugar.
           </Text>
 
           {!registerMode ? (
@@ -285,7 +286,7 @@ export default function CollaborativeTasksScreen() {
                 ) : (
                   <>
                     <Ionicons name="play-circle-outline" size={21} color="#FFFFFF" />
-                    <Text style={styles.primaryButtonText}>Entrar a la demostración</Text>
+                    <Text style={styles.primaryButtonText}>Entrar con la cuenta disponible</Text>
                   </>
                 )}
               </Pressable>
@@ -332,11 +333,10 @@ export default function CollaborativeTasksScreen() {
 
           <Pressable onPress={toggleRegisterMode} style={styles.linkButton}>
             <Text style={styles.linkButtonText}>
-              {registerMode ? "Ya tengo una cuenta" : "Crear una cuenta para la demostración"}
+              {registerMode ? "Ya tengo una cuenta" : "Crear otra cuenta"}
             </Text>
           </Pressable>
 
-          <Text selectable style={styles.apiAddress}>API: {COLLABORATIVE_TASKS_API_URL}</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     );
@@ -353,11 +353,11 @@ export default function CollaborativeTasksScreen() {
     >
       <View style={styles.dashboardHeader}>
         <View>
-          <Text style={styles.dashboardEyebrow}>API COLABORATIVA</Text>
+          <Text style={styles.dashboardEyebrow}>PLANIFICACIÓN</Text>
           <Text style={styles.dashboardTitle}>Mis tareas</Text>
           <View style={styles.connectedRow}>
             <View style={styles.onlineDot} />
-            <Text style={styles.connectedText}>Sincronizadas con Laravel</Text>
+            <Text style={styles.connectedText}>Cambios guardados</Text>
           </View>
         </View>
         <Pressable accessibilityLabel="Desconectar cuenta" onPress={logout} style={styles.logoutButton}>
@@ -385,31 +385,38 @@ export default function CollaborativeTasksScreen() {
       {activeSection === "progress" ? (
         <>
           <View style={styles.filterCard}>
-            <View style={styles.filterHeader}>
+            <Pressable onPress={() => setShowFilters((current) => !current)} style={styles.filterHeader}>
               <View>
-                <Text style={styles.sectionTitle}>Rango de fechas</Text>
-                <Text style={styles.filterHint}>Filtra por fecha de registro</Text>
+                <Text style={styles.sectionTitle}>Periodo del reporte</Text>
+                <Text style={styles.filterHint}>{from}  →  {to}</Text>
               </View>
-              <Ionicons name="calendar-outline" size={23} color="#2563EB" />
-            </View>
-            <View style={styles.quickRanges}>
-              <Pressable onPress={() => setQuickRange(1)} style={styles.quickRange}><Text style={styles.quickRangeText}>Hoy</Text></Pressable>
-              <Pressable onPress={() => setQuickRange(7)} style={styles.quickRange}><Text style={styles.quickRangeText}>7 días</Text></Pressable>
-              <Pressable onPress={() => setQuickRange(null)} style={styles.quickRange}><Text style={styles.quickRangeText}>Este mes</Text></Pressable>
-            </View>
-            <View style={styles.dateRow}>
-              <View style={styles.dateField}>
-                <Text style={styles.label}>Desde</Text>
-                <TextInput autoCapitalize="none" onChangeText={setFrom} placeholder="AAAA-MM-DD" style={styles.compactInput} value={from} />
+              <View style={styles.filterAction}>
+                <Ionicons name="calendar-outline" size={21} color="#2563EB" />
+                <Ionicons name={showFilters ? "chevron-up" : "chevron-down"} size={17} color="#64748B" />
               </View>
-              <View style={styles.dateField}>
-                <Text style={styles.label}>Hasta</Text>
-                <TextInput autoCapitalize="none" onChangeText={setTo} placeholder="AAAA-MM-DD" style={styles.compactInput} value={to} />
-              </View>
-            </View>
-            <Pressable disabled={loadingProgress} onPress={applyDashboard} style={styles.filterButton}>
-              {loadingProgress ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.filterButtonText}>Aplicar filtro</Text>}
             </Pressable>
+            {showFilters ? (
+              <View style={styles.filterContent}>
+                <View style={styles.quickRanges}>
+                  <Pressable onPress={() => setQuickRange(1)} style={styles.quickRange}><Text style={styles.quickRangeText}>Hoy</Text></Pressable>
+                  <Pressable onPress={() => setQuickRange(7)} style={styles.quickRange}><Text style={styles.quickRangeText}>7 días</Text></Pressable>
+                  <Pressable onPress={() => setQuickRange(null)} style={styles.quickRange}><Text style={styles.quickRangeText}>Este mes</Text></Pressable>
+                </View>
+                <View style={styles.dateRow}>
+                  <View style={styles.dateField}>
+                    <Text style={styles.label}>Desde</Text>
+                    <TextInput autoCapitalize="none" onChangeText={setFrom} placeholder="AAAA-MM-DD" style={styles.compactInput} value={from} />
+                  </View>
+                  <View style={styles.dateField}>
+                    <Text style={styles.label}>Hasta</Text>
+                    <TextInput autoCapitalize="none" onChangeText={setTo} placeholder="AAAA-MM-DD" style={styles.compactInput} value={to} />
+                  </View>
+                </View>
+                <Pressable disabled={loadingProgress} onPress={applyDashboard} style={styles.filterButton}>
+                  {loadingProgress ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.filterButtonText}>Actualizar reporte</Text>}
+                </Pressable>
+              </View>
+            ) : null}
           </View>
 
           <View style={styles.summaryCard}>
@@ -472,10 +479,10 @@ export default function CollaborativeTasksScreen() {
       ) : (
         <View style={styles.createCard}>
           <View style={styles.createIcon}>
-            <Ionicons name="cloud-upload-outline" size={27} color="#2563EB" />
+            <Ionicons name="create-outline" size={27} color="#2563EB" />
           </View>
           <Text style={styles.createTitle}>Registrar nueva tarea</Text>
-          <Text style={styles.createDescription}>La tarea se guardará en la API de tu compañero y aparecerá en el progreso del rango correspondiente.</Text>
+          <Text style={styles.createDescription}>Añade la información necesaria y la tarea aparecerá en el progreso del rango correspondiente.</Text>
           <Text style={styles.label}>Título</Text>
           <TextInput onChangeText={setTaskTitle} placeholder="Ejemplo: Preparar presentación" style={styles.input} value={taskTitle} />
           <Text style={styles.label}>Descripción opcional</Text>
@@ -495,7 +502,7 @@ export default function CollaborativeTasksScreen() {
             })}
           </ScrollView>
           <Pressable disabled={savingTask} onPress={saveTask} style={styles.primaryButton}>
-            {savingTask ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="add-circle-outline" size={20} color="#FFFFFF" /><Text style={styles.primaryButtonText}>Guardar tarea en la API</Text></>}
+            {savingTask ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="add-circle-outline" size={20} color="#FFFFFF" /><Text style={styles.primaryButtonText}>Guardar tarea</Text></>}
           </Pressable>
         </View>
       )}
@@ -522,7 +529,6 @@ const styles = StyleSheet.create({
   primaryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "800" },
   linkButton: { alignItems: "center", padding: 16 },
   linkButtonText: { color: "#2563EB", fontWeight: "700" },
-  apiAddress: { color: "#94A3B8", fontSize: 11, marginTop: 8, textAlign: "center" },
   dashboardHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between", marginBottom: 17 },
   dashboardEyebrow: { color: "#7C3AED", fontSize: 11, fontWeight: "900", letterSpacing: 1.15 },
   dashboardTitle: { color: "#0F172A", fontSize: 30, fontWeight: "900", marginTop: 3 },
@@ -536,6 +542,8 @@ const styles = StyleSheet.create({
   segmentTextActive: { color: "#FFFFFF" },
   filterCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, marginBottom: 14, padding: 16 },
   filterHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  filterAction: { alignItems: "center", flexDirection: "row", gap: 7 },
+  filterContent: { borderTopColor: "#E2E8F0", borderTopWidth: 1, marginTop: 13, paddingTop: 1 },
   filterHint: { color: "#94A3B8", fontSize: 11, marginTop: 1 },
   quickRanges: { flexDirection: "row", gap: 7, marginBottom: 13, marginTop: 13 },
   quickRange: { backgroundColor: "#EFF6FF", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7 },
