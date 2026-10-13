@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,6 +33,7 @@ import {
 } from "../../services/collaborative-tasks-api";
 
 type SessionState = "checking" | "anonymous" | "authenticated";
+type TaskSection = "progress" | "create";
 
 function formatLocalDate(date: Date) {
   const year = date.getFullYear();
@@ -83,6 +85,7 @@ export default function CollaborativeTasksScreen() {
   const [taskDescription, setTaskDescription] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [savingTask, setSavingTask] = useState(false);
+  const [activeSection, setActiveSection] = useState<TaskSection>("progress");
 
   useEffect(() => {
     let active = true;
@@ -207,6 +210,7 @@ export default function CollaborativeTasksScreen() {
       setCategories(dashboard.categories);
       setProgress(dashboard.progress);
       Alert.alert("Tarea registrada", `La API creó correctamente “${createdTask.title}”.`);
+      setActiveSection("progress");
     } catch (error) {
       Alert.alert("No se pudo registrar la tarea", collaborativeApiErrorMessage(error));
     } finally {
@@ -236,6 +240,15 @@ export default function CollaborativeTasksScreen() {
       setPassword(nextMode ? "" : COLLABORATIVE_DEMO_PASSWORD);
       return nextMode;
     });
+  };
+
+  const setQuickRange = (days: number | null) => {
+    const today = new Date();
+    const start = days === null
+      ? new Date(today.getFullYear(), today.getMonth(), 1)
+      : new Date(today.getFullYear(), today.getMonth(), today.getDate() - days + 1);
+    setFrom(formatLocalDate(start));
+    setTo(formatLocalDate(today));
   };
 
   if (session === "checking") {
@@ -332,184 +345,167 @@ export default function CollaborativeTasksScreen() {
   const summary = progress?.summary;
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" style={styles.container}>
-      <View style={styles.connectionCard}>
-        <View style={styles.connectionTitleRow}>
-          <View style={styles.onlineDot} />
-          <Text style={styles.connectionTitle}>Conectado a la API de tareas</Text>
+    <ScrollView
+      contentContainerStyle={styles.content}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={<RefreshControl onRefresh={applyDashboard} refreshing={loadingProgress} tintColor="#2563EB" />}
+      style={styles.container}
+    >
+      <View style={styles.dashboardHeader}>
+        <View>
+          <Text style={styles.dashboardEyebrow}>API COLABORATIVA</Text>
+          <Text style={styles.dashboardTitle}>Mis tareas</Text>
+          <View style={styles.connectedRow}>
+            <View style={styles.onlineDot} />
+            <Text style={styles.connectedText}>Sincronizadas con Laravel</Text>
+          </View>
         </View>
-        <Text numberOfLines={1} style={styles.connectionUrl}>{COLLABORATIVE_TASKS_API_URL}</Text>
-        <Pressable onPress={logout}>
-          <Text style={styles.logoutText}>Desconectar cuenta</Text>
+        <Pressable accessibilityLabel="Desconectar cuenta" onPress={logout} style={styles.logoutButton}>
+          <Ionicons name="log-out-outline" size={23} color="#DC2626" />
         </Pressable>
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Progreso por rango de fechas</Text>
-        <Text style={styles.sectionDescription}>Las fechas filtran las tareas por el día en que fueron registradas.</Text>
-
-        <View style={styles.dateRow}>
-          <View style={styles.dateField}>
-            <Text style={styles.label}>Desde</Text>
-            <TextInput
-              autoCapitalize="none"
-              onChangeText={setFrom}
-              placeholder="AAAA-MM-DD"
-              style={styles.input}
-              value={from}
-            />
-          </View>
-          <View style={styles.dateField}>
-            <Text style={styles.label}>Hasta</Text>
-            <TextInput
-              autoCapitalize="none"
-              onChangeText={setTo}
-              placeholder="AAAA-MM-DD"
-              style={styles.input}
-              value={to}
-            />
-          </View>
-        </View>
-
-        <Pressable disabled={loadingProgress} onPress={applyDashboard} style={styles.secondaryButton}>
-          {loadingProgress ? (
-            <ActivityIndicator color="#1D4ED8" />
-          ) : (
-            <>
-              <Ionicons name="analytics-outline" size={19} color="#1D4ED8" />
-              <Text style={styles.secondaryButtonText}>Consultar progreso</Text>
-            </>
-          )}
+      <View style={styles.segmentedControl}>
+        <Pressable
+          onPress={() => setActiveSection("progress")}
+          style={[styles.segmentButton, activeSection === "progress" && styles.segmentButtonActive]}
+        >
+          <Ionicons name="analytics-outline" size={18} color={activeSection === "progress" ? "#FFFFFF" : "#64748B"} />
+          <Text style={[styles.segmentText, activeSection === "progress" && styles.segmentTextActive]}>Progreso</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setActiveSection("create")}
+          style={[styles.segmentButton, activeSection === "create" && styles.segmentButtonActive]}
+        >
+          <Ionicons name="add-circle-outline" size={18} color={activeSection === "create" ? "#FFFFFF" : "#64748B"} />
+          <Text style={[styles.segmentText, activeSection === "create" && styles.segmentTextActive]}>Nueva tarea</Text>
         </Pressable>
       </View>
 
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Progreso general</Text>
-        <Text style={styles.summaryPercentage}>{summary?.percentage ?? 0}%</Text>
-        <Text style={styles.summaryDetail}>
-          {summary?.completed_tasks ?? 0} completadas de {summary?.total_tasks ?? 0} tareas
-        </Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${summary?.percentage ?? 0}%` }]} />
-        </View>
-      </View>
-
-      <Text style={styles.groupHeading}>Progreso por grupo</Text>
-      {progress?.groups.length ? (
-        progress.groups.map((group) => (
-          <View key={group.category_id ?? "uncategorized"} style={styles.groupCard}>
-            <View style={styles.groupHeader}>
-              <View style={styles.groupNameRow}>
-                <View style={[styles.categoryDot, { backgroundColor: group.category_color }]} />
-                <Text style={styles.groupName}>{group.category_name}</Text>
+      {activeSection === "progress" ? (
+        <>
+          <View style={styles.filterCard}>
+            <View style={styles.filterHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Rango de fechas</Text>
+                <Text style={styles.filterHint}>Filtra por fecha de registro</Text>
               </View>
-              <Text style={styles.groupPercentage}>{group.percentage}%</Text>
+              <Ionicons name="calendar-outline" size={23} color="#2563EB" />
             </View>
-            <Text style={styles.groupDetail}>
-              {group.completed_tasks} completadas · {group.pending_tasks} pendientes · {group.total_tasks} total
-            </Text>
-            <View style={styles.groupTrack}>
-              <View
-                style={[
-                  styles.groupFill,
-                  { backgroundColor: group.category_color, width: `${group.percentage}%` },
-                ]}
-              />
+            <View style={styles.quickRanges}>
+              <Pressable onPress={() => setQuickRange(1)} style={styles.quickRange}><Text style={styles.quickRangeText}>Hoy</Text></Pressable>
+              <Pressable onPress={() => setQuickRange(7)} style={styles.quickRange}><Text style={styles.quickRangeText}>7 días</Text></Pressable>
+              <Pressable onPress={() => setQuickRange(null)} style={styles.quickRange}><Text style={styles.quickRangeText}>Este mes</Text></Pressable>
             </View>
-            <View style={styles.taskList}>
-              {group.tasks.map((task) => (
-                <View key={task.id} style={styles.taskRow}>
-                  <Ionicons
-                    name={task.completed ? "checkmark-circle" : "ellipse-outline"}
-                    size={21}
-                    color={task.completed ? "#16A34A" : "#94A3B8"}
-                  />
-                  <View style={styles.taskTextContainer}>
-                    <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>
-                      {task.title}
-                    </Text>
-                    {task.description ? (
-                      <Text style={styles.taskDescription}>{task.description}</Text>
-                    ) : null}
-                  </View>
-                </View>
-              ))}
+            <View style={styles.dateRow}>
+              <View style={styles.dateField}>
+                <Text style={styles.label}>Desde</Text>
+                <TextInput autoCapitalize="none" onChangeText={setFrom} placeholder="AAAA-MM-DD" style={styles.compactInput} value={from} />
+              </View>
+              <View style={styles.dateField}>
+                <Text style={styles.label}>Hasta</Text>
+                <TextInput autoCapitalize="none" onChangeText={setTo} placeholder="AAAA-MM-DD" style={styles.compactInput} value={to} />
+              </View>
+            </View>
+            <Pressable disabled={loadingProgress} onPress={applyDashboard} style={styles.filterButton}>
+              {loadingProgress ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.filterButtonText}>Aplicar filtro</Text>}
+            </Pressable>
+          </View>
+
+          <View style={styles.summaryCard}>
+            <View style={styles.summaryTopRow}>
+              <View>
+                <Text style={styles.summaryLabel}>Progreso general</Text>
+                <Text style={styles.summaryDetail}>{summary?.completed_tasks ?? 0} de {summary?.total_tasks ?? 0} completadas</Text>
+              </View>
+              <Text style={styles.summaryPercentage}>{summary?.percentage ?? 0}%</Text>
+            </View>
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${summary?.percentage ?? 0}%` }]} />
+            </View>
+            <View style={styles.taskMetrics}>
+              <View style={styles.taskMetric}><Text style={styles.taskMetricValue}>{summary?.total_tasks ?? 0}</Text><Text style={styles.taskMetricLabel}>Total</Text></View>
+              <View style={styles.taskMetric}><Text style={styles.taskMetricValue}>{summary?.completed_tasks ?? 0}</Text><Text style={styles.taskMetricLabel}>Completadas</Text></View>
+              <View style={styles.taskMetric}><Text style={styles.taskMetricValue}>{summary?.pending_tasks ?? 0}</Text><Text style={styles.taskMetricLabel}>Pendientes</Text></View>
             </View>
           </View>
-        ))
+
+          <View style={styles.groupHeadingRow}>
+            <Text style={styles.groupHeading}>Progreso por grupo</Text>
+            <Text style={styles.groupCount}>{progress?.groups.length ?? 0} grupos</Text>
+          </View>
+          {progress?.groups.length ? (
+            progress.groups.map((group) => (
+              <View key={group.category_id ?? "uncategorized"} style={styles.groupCard}>
+                <View style={styles.groupHeader}>
+                  <View style={styles.groupNameRow}>
+                    <View style={[styles.categoryDot, { backgroundColor: group.category_color }]} />
+                    <Text style={styles.groupName}>{group.category_name}</Text>
+                  </View>
+                  <Text style={styles.groupPercentage}>{group.percentage}%</Text>
+                </View>
+                <Text style={styles.groupDetail}>{group.completed_tasks} completadas · {group.pending_tasks} pendientes</Text>
+                <View style={styles.groupTrack}>
+                  <View style={[styles.groupFill, { backgroundColor: group.category_color, width: `${group.percentage}%` }]} />
+                </View>
+                <View style={styles.taskList}>
+                  {group.tasks.map((task) => (
+                    <View key={task.id} style={styles.taskRow}>
+                      <Ionicons name={task.completed ? "checkmark-circle" : "ellipse-outline"} size={21} color={task.completed ? "#16A34A" : "#94A3B8"} />
+                      <View style={styles.taskTextContainer}>
+                        <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>{task.title}</Text>
+                        {task.description ? <Text style={styles.taskDescription}>{task.description}</Text> : null}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))
+          ) : (
+            <View style={styles.emptyCard}>
+              <Ionicons name="calendar-outline" size={32} color="#94A3B8" />
+              <Text style={styles.emptyTitle}>No hay tareas en este rango</Text>
+              <Text style={styles.mutedText}>Cambia las fechas o registra una tarea nueva.</Text>
+            </View>
+          )}
+        </>
       ) : (
-        <View style={styles.emptyCard}>
-          <Ionicons name="calendar-outline" size={32} color="#94A3B8" />
-          <Text style={styles.emptyTitle}>No hay tareas en este rango</Text>
-          <Text style={styles.mutedText}>Cambia las fechas o registra una tarea nueva.</Text>
+        <View style={styles.createCard}>
+          <View style={styles.createIcon}>
+            <Ionicons name="cloud-upload-outline" size={27} color="#2563EB" />
+          </View>
+          <Text style={styles.createTitle}>Registrar nueva tarea</Text>
+          <Text style={styles.createDescription}>La tarea se guardará en la API de tu compañero y aparecerá en el progreso del rango correspondiente.</Text>
+          <Text style={styles.label}>Título</Text>
+          <TextInput onChangeText={setTaskTitle} placeholder="Ejemplo: Preparar presentación" style={styles.input} value={taskTitle} />
+          <Text style={styles.label}>Descripción opcional</Text>
+          <TextInput multiline numberOfLines={3} onChangeText={setTaskDescription} placeholder="Agrega los detalles necesarios" style={[styles.input, styles.descriptionInput]} textAlignVertical="top" value={taskDescription} />
+          <Text style={styles.label}>Grupo o categoría</Text>
+          <ScrollView contentContainerStyle={styles.categoryChipList} horizontal showsHorizontalScrollIndicator={false}>
+            <Pressable onPress={() => setSelectedCategoryId(null)} style={[styles.categoryChip, selectedCategoryId === null && styles.categoryChipSelected]}>
+              <Text style={[styles.categoryChipText, selectedCategoryId === null && styles.categoryChipTextSelected]}>Sin categoría</Text>
+            </Pressable>
+            {categories.map((category) => {
+              const selected = category.id === selectedCategoryId;
+              return (
+                <Pressable key={category.id} onPress={() => setSelectedCategoryId(category.id)} style={[styles.categoryChip, selected && { backgroundColor: category.color, borderColor: category.color }]}>
+                  <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>{category.name}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <Pressable disabled={savingTask} onPress={saveTask} style={styles.primaryButton}>
+            {savingTask ? <ActivityIndicator color="#FFFFFF" /> : <><Ionicons name="add-circle-outline" size={20} color="#FFFFFF" /><Text style={styles.primaryButtonText}>Guardar tarea en la API</Text></>}
+          </Pressable>
         </View>
       )}
-
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Registrar nueva tarea</Text>
-        <TextInput
-          onChangeText={setTaskTitle}
-          placeholder="Ejemplo: Preparar presentación"
-          style={styles.input}
-          value={taskTitle}
-        />
-        <TextInput
-          multiline
-          numberOfLines={3}
-          onChangeText={setTaskDescription}
-          placeholder="Descripción de la tarea (opcional)"
-          style={[styles.input, styles.descriptionInput]}
-          textAlignVertical="top"
-          value={taskDescription}
-        />
-
-        <Text style={styles.label}>Grupo o categoría</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroller}>
-          <Pressable
-            onPress={() => setSelectedCategoryId(null)}
-            style={[styles.categoryChip, selectedCategoryId === null && styles.categoryChipSelected]}
-          >
-            <Text style={[styles.categoryChipText, selectedCategoryId === null && styles.categoryChipTextSelected]}>
-              Sin categoría
-            </Text>
-          </Pressable>
-          {categories.map((category) => {
-            const selected = category.id === selectedCategoryId;
-            return (
-              <Pressable
-                key={category.id}
-                onPress={() => setSelectedCategoryId(category.id)}
-                style={[
-                  styles.categoryChip,
-                  selected && { backgroundColor: category.color, borderColor: category.color },
-                ]}
-              >
-                <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>
-                  {category.name}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        <Pressable disabled={savingTask} onPress={saveTask} style={styles.primaryButton}>
-          {savingTask ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <>
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>Guardar mediante la API</Text>
-            </>
-          )}
-        </Pressable>
-      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: "#F4F6F8", flex: 1 },
-  content: { padding: 16, paddingBottom: 42 },
+  container: { backgroundColor: "#F1F5F9", flex: 1 },
+  content: { padding: 17, paddingBottom: 42 },
   centered: { alignItems: "center", backgroundColor: "#F4F6F8", flex: 1, justifyContent: "center", padding: 24 },
   authContainer: { backgroundColor: "#F4F6F8", flex: 1 },
   authContent: { flexGrow: 1, justifyContent: "center", padding: 22 },
@@ -527,6 +523,26 @@ const styles = StyleSheet.create({
   linkButton: { alignItems: "center", padding: 16 },
   linkButtonText: { color: "#2563EB", fontWeight: "700" },
   apiAddress: { color: "#94A3B8", fontSize: 11, marginTop: 8, textAlign: "center" },
+  dashboardHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between", marginBottom: 17 },
+  dashboardEyebrow: { color: "#7C3AED", fontSize: 11, fontWeight: "900", letterSpacing: 1.15 },
+  dashboardTitle: { color: "#0F172A", fontSize: 30, fontWeight: "900", marginTop: 3 },
+  connectedRow: { alignItems: "center", flexDirection: "row", gap: 6, marginTop: 5 },
+  connectedText: { color: "#64748B", fontSize: 12, fontWeight: "600" },
+  logoutButton: { alignItems: "center", backgroundColor: "#FEE2E2", borderRadius: 15, height: 48, justifyContent: "center", width: 48 },
+  segmentedControl: { backgroundColor: "#E2E8F0", borderRadius: 14, flexDirection: "row", marginBottom: 15, padding: 4 },
+  segmentButton: { alignItems: "center", borderRadius: 11, flex: 1, flexDirection: "row", gap: 7, justifyContent: "center", minHeight: 43 },
+  segmentButtonActive: { backgroundColor: "#2563EB" },
+  segmentText: { color: "#64748B", fontSize: 13, fontWeight: "800" },
+  segmentTextActive: { color: "#FFFFFF" },
+  filterCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, marginBottom: 14, padding: 16 },
+  filterHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  filterHint: { color: "#94A3B8", fontSize: 11, marginTop: 1 },
+  quickRanges: { flexDirection: "row", gap: 7, marginBottom: 13, marginTop: 13 },
+  quickRange: { backgroundColor: "#EFF6FF", borderRadius: 14, paddingHorizontal: 12, paddingVertical: 7 },
+  quickRangeText: { color: "#1D4ED8", fontSize: 11, fontWeight: "800" },
+  compactInput: { backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 9, borderWidth: 1, color: "#0F172A", fontSize: 13, paddingHorizontal: 10, paddingVertical: 10 },
+  filterButton: { alignItems: "center", backgroundColor: "#2563EB", borderRadius: 10, justifyContent: "center", marginTop: 12, minHeight: 43 },
+  filterButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "900" },
   connectionCard: { backgroundColor: "#EFF6FF", borderColor: "#BFDBFE", borderRadius: 14, borderWidth: 1, marginBottom: 14, padding: 14 },
   connectionTitleRow: { alignItems: "center", flexDirection: "row", gap: 8 },
   onlineDot: { backgroundColor: "#16A34A", borderRadius: 5, height: 10, width: 10 },
@@ -541,13 +557,20 @@ const styles = StyleSheet.create({
   label: { color: "#475569", fontSize: 12, fontWeight: "800", marginBottom: 7, textTransform: "uppercase" },
   secondaryButton: { alignItems: "center", backgroundColor: "#EFF6FF", borderColor: "#BFDBFE", borderRadius: 10, borderWidth: 1, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 46 },
   secondaryButtonText: { color: "#1D4ED8", fontWeight: "800" },
-  summaryCard: { backgroundColor: "#172554", borderRadius: 18, marginBottom: 18, padding: 22 },
+  summaryCard: { backgroundColor: "#172554", borderRadius: 18, marginBottom: 18, padding: 20 },
+  summaryTopRow: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
   summaryLabel: { color: "#BFDBFE", fontSize: 14, fontWeight: "700" },
-  summaryPercentage: { color: "#FFFFFF", fontSize: 46, fontWeight: "900", marginTop: 4 },
-  summaryDetail: { color: "#DBEAFE", marginBottom: 16, marginTop: 3 },
-  progressTrack: { backgroundColor: "#1E3A8A", borderRadius: 5, height: 10, overflow: "hidden" },
+  summaryPercentage: { color: "#FFFFFF", fontSize: 37, fontWeight: "900" },
+  summaryDetail: { color: "#DBEAFE", fontSize: 12, marginTop: 4 },
+  progressTrack: { backgroundColor: "#1E3A8A", borderRadius: 5, height: 10, marginTop: 15, overflow: "hidden" },
   progressFill: { backgroundColor: "#60A5FA", borderRadius: 5, height: "100%" },
-  groupHeading: { color: "#0F172A", fontSize: 18, fontWeight: "800", marginBottom: 10, marginLeft: 2 },
+  taskMetrics: { flexDirection: "row", marginTop: 14 },
+  taskMetric: { flex: 1 },
+  taskMetricValue: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
+  taskMetricLabel: { color: "#93C5FD", fontSize: 9, marginTop: 2 },
+  groupHeadingRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
+  groupHeading: { color: "#0F172A", fontSize: 18, fontWeight: "800", marginLeft: 2 },
+  groupCount: { color: "#64748B", fontSize: 11 },
   groupCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 14, borderWidth: 1, marginBottom: 10, padding: 15 },
   groupHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   groupNameRow: { alignItems: "center", flexDirection: "row", gap: 8 },
@@ -567,7 +590,12 @@ const styles = StyleSheet.create({
   emptyTitle: { color: "#334155", fontWeight: "800", marginBottom: 5, marginTop: 8 },
   mutedText: { color: "#64748B", marginTop: 9, textAlign: "center" },
   categoryScroller: { marginBottom: 18 },
+  createCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 18, borderWidth: 1, padding: 18 },
+  createIcon: { alignItems: "center", backgroundColor: "#DBEAFE", borderRadius: 17, height: 54, justifyContent: "center", marginBottom: 13, width: 54 },
+  createTitle: { color: "#0F172A", fontSize: 23, fontWeight: "900" },
+  createDescription: { color: "#64748B", fontSize: 13, lineHeight: 19, marginBottom: 20, marginTop: 6 },
   descriptionInput: { minHeight: 86 },
+  categoryChipList: { paddingBottom: 18 },
   categoryChip: { borderColor: "#CBD5E1", borderRadius: 20, borderWidth: 1, marginRight: 8, paddingHorizontal: 13, paddingVertical: 9 },
   categoryChipSelected: { backgroundColor: "#334155", borderColor: "#334155" },
   categoryChipText: { color: "#475569", fontSize: 13, fontWeight: "700" },
