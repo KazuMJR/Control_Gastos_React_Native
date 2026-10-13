@@ -76,7 +76,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.apiBadge}>
             <View style={[styles.apiDot, gastosApiError && styles.apiDotError]} />
-            <Text style={styles.apiText}>{gastosApiError ? "API sin conexión" : "Sincronizado"}</Text>
+            <Text style={styles.apiText}>{gastosApiError ? "Sin conexión" : "Al día"}</Text>
           </View>
         </View>
         <View style={styles.progressTrack}>
@@ -106,7 +106,7 @@ export default function HomeScreen() {
           </View>
           <View>
             <Text style={styles.primaryActionTitle}>Nuevo gasto</Text>
-            <Text style={styles.primaryActionSubtitle}>Guardar en la API</Text>
+            <Text style={styles.primaryActionSubtitle}>Registrar movimiento</Text>
           </View>
         </Pressable>
         <Pressable onPress={() => router.push("/(tabs)/estadisticas")} style={[styles.primaryAction, styles.historyAction]}>
@@ -147,7 +147,11 @@ export default function HomeScreen() {
       ) : gastos.length ? (
         <View style={styles.movementsCard}>
           {gastos.slice(0, 3).map((gasto: any, index: number) => (
-            <View key={gasto.id} style={[styles.movementRow, index > 0 && styles.movementBorder]}>
+            <Pressable
+              key={gasto.id}
+              onPress={() => router.push(`/gasto/${gasto.id}` as Href)}
+              style={({ pressed }) => [styles.movementRow, index > 0 && styles.movementBorder, pressed && styles.movementPressed]}
+            >
               <View style={[styles.movementIcon, { backgroundColor: `${gasto.categoria?.color ?? "#64748B"}18` }]}>
                 <Ionicons name="receipt-outline" size={20} color={gasto.categoria?.color ?? "#64748B"} />
               </View>
@@ -156,7 +160,8 @@ export default function HomeScreen() {
                 <Text style={styles.movementCategory}>{gasto.categoria?.nombre ?? "Sin categoría"}</Text>
               </View>
               <Text style={styles.movementAmount}>- Q {gasto.monto.toFixed(2)}</Text>
-            </View>
+              <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+            </Pressable>
           ))}
         </View>
       ) : (
@@ -214,12 +219,13 @@ const styles = StyleSheet.create({
   loadingText: { color: "#64748B", fontSize: 12 },
   movementsCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 16, borderWidth: 1, paddingHorizontal: 13 },
   movementRow: { alignItems: "center", flexDirection: "row", paddingVertical: 13 },
+  movementPressed: { opacity: 0.68 },
   movementBorder: { borderTopColor: "#E2E8F0", borderTopWidth: 1 },
   movementIcon: { alignItems: "center", borderRadius: 12, height: 39, justifyContent: "center", width: 39 },
   movementInfo: { flex: 1, marginHorizontal: 10 },
   movementTitle: { color: "#1E293B", fontSize: 13, fontWeight: "800" },
   movementCategory: { color: "#64748B", fontSize: 10, marginTop: 3 },
-  movementAmount: { color: "#DC2626", fontSize: 12, fontWeight: "900" },
+  movementAmount: { color: "#DC2626", fontSize: 12, fontWeight: "900", marginRight: 4 },
   emptyCard: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 15, borderWidth: 1, padding: 27 },
   emptyTitle: { color: "#334155", fontWeight: "900", marginTop: 8 },
   emptyText: { color: "#64748B", fontSize: 12, marginTop: 4, textAlign: "center" },

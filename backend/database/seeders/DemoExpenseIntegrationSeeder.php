@@ -27,6 +27,14 @@ class DemoExpenseIntegrationSeeder extends Seeder
             );
         }
 
+        Categoria::query()
+            ->whereDoesntHave('gastos')
+            ->where(function ($query) {
+                $query->where('nombre', 'like', 'Prueba%')
+                    ->orWhere('nombre', 'like', 'Test%');
+            })
+            ->delete();
+
         $categories = collect([
             ['nombre' => 'Alimentación', 'color' => '#F97316'],
             ['nombre' => 'Transporte', 'color' => '#2563EB'],
@@ -42,26 +50,46 @@ class DemoExpenseIntegrationSeeder extends Seeder
             return [$model->nombre => $model];
         });
 
-        if ($user->gastos()->exists()) {
-            return;
+        $legacyFoodCategory = Categoria::query()->where('nombre', 'AlimentaciónN')->first();
+        if ($legacyFoodCategory) {
+            $legacyFoodCategory->gastos()->update([
+                'categoria_id' => $categories['Alimentación']->id,
+            ]);
+            $legacyFoodCategory->delete();
         }
 
         $month = now()->startOfMonth();
         $expenses = [
-            ['descripcion' => 'Supermercado', 'monto' => 286.40, 'day' => 2, 'category' => 'Alimentación'],
-            ['descripcion' => 'Transporte a la universidad', 'monto' => 75.00, 'day' => 4, 'category' => 'Transporte'],
-            ['descripcion' => 'Materiales para la actividad', 'monto' => 128.50, 'day' => 6, 'category' => 'Universidad'],
-            ['descripcion' => 'Servicio de internet', 'monto' => 225.00, 'day' => 8, 'category' => 'Servicios'],
+            ['descripcion' => 'Supermercado', 'monto' => 286.40, 'day' => 2, 'category' => 'Alimentación', 'notas' => 'Compra de alimentos y artículos del hogar.'],
+            ['descripcion' => 'Transporte a la universidad', 'monto' => 75.00, 'day' => 4, 'category' => 'Transporte', 'notas' => 'Traslados de la semana.'],
+            ['descripcion' => 'Materiales para la actividad', 'monto' => 128.50, 'day' => 6, 'category' => 'Universidad', 'notas' => 'Materiales utilizados en clase.'],
+            ['descripcion' => 'Servicio de internet', 'monto' => 225.00, 'day' => 8, 'category' => 'Servicios', 'notas' => 'Pago mensual del servicio.'],
         ];
 
         foreach ($expenses as $expense) {
-            $user->gastos()->create([
+            $date = $month->copy()->addDays($expense['day'] - 1)->toDateString();
+            $matches = $user->gastos()
+                ->where('descripcion', $expense['descripcion'])
+                ->whereDate('fecha_gasto', $date)
+                ->oldest('id')
+                ->get();
+            $gasto = $matches->shift();
+            $data = [
                 'categoria_id' => $categories[$expense['category']]->id,
-                'descripcion' => $expense['descripcion'],
                 'monto' => $expense['monto'],
-                'fecha_gasto' => $month->copy()->addDays($expense['day'] - 1)->toDateString(),
-                'notas' => 'Dato de demostración generado para la actividad.',
-            ]);
+                'fecha_gasto' => $date,
+                'notas' => $expense['notas'],
+            ];
+
+            if ($gasto) {
+                $gasto->update($data);
+                $matches->each(fn ($duplicate) => $duplicate->delete());
+            } else {
+                $user->gastos()->create([
+                    ...$data,
+                    'descripcion' => $expense['descripcion'],
+                ]);
+            }
         }
     }
 }

@@ -171,6 +171,11 @@ export async function getExpenseCategories() {
   return authorizedRequest(() => expensesApi.get<ExpenseCategory[]>("/categorias"));
 }
 
+export async function getExpense(id: number) {
+  const data = await authorizedRequest(() => expensesApi.get<RawExpense>(`/gastos/${id}`));
+  return normalizeExpense(data);
+}
+
 export async function createExpense(input: {
   descripcion: string;
   monto: number;
@@ -202,8 +207,8 @@ export function expenseApiErrorMessage(error: unknown) {
   }
 
   if (!error.response) {
-    return `No fue posible conectar con ${EXPENSES_API_URL}. Ejecuta npm run dev y mantén la terminal abierta.`;
+    return "No fue posible actualizar tus gastos. Ejecuta npm run dev y mantén la terminal abierta.";
   }
 
-  return `La API de gastos respondió con el estado ${error.response.status}.`;
+  return `No se pudo completar la operación (estado ${error.response.status}).`;
 }

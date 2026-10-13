@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Href, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -107,7 +108,7 @@ export default function HistorialScreen() {
     >
       <View style={styles.header}>
         <View>
-          <Text style={styles.eyebrow}>MOVIMIENTOS DE LA API</Text>
+          <Text style={styles.eyebrow}>RESUMEN MENSUAL</Text>
           <Text style={styles.title}>Historial</Text>
           <Text style={styles.subtitle}>Consulta cuánto gastaste en cada mes.</Text>
         </View>
@@ -144,7 +145,7 @@ export default function HistorialScreen() {
         <View style={styles.errorCard}>
           <Ionicons name="cloud-offline-outline" size={24} color="#B45309" />
           <View style={styles.errorContent}>
-            <Text style={styles.errorTitle}>No se pudo consultar la API</Text>
+            <Text style={styles.errorTitle}>No se pudo cargar el historial</Text>
             <Text style={styles.errorText}>{error}</Text>
             <Pressable onPress={() => loadHistory(selectedMonth)} style={styles.retryButton}>
               <Text style={styles.retryText}>Reintentar</Text>
@@ -189,7 +190,7 @@ export default function HistorialScreen() {
 
       <View style={styles.listHeader}>
         <Text style={styles.sectionTitle}>Movimientos</Text>
-        <Text style={styles.apiStatus}>Guardados en API</Text>
+        <Text style={styles.movementCount}>{summary?.expense_count ?? 0} en total</Text>
       </View>
 
       {loading ? (
@@ -200,7 +201,11 @@ export default function HistorialScreen() {
       ) : history?.data.length ? (
         <View style={styles.expenseList}>
           {history.data.map((expense) => (
-            <View key={expense.id} style={styles.expenseCard}>
+            <Pressable
+              key={expense.id}
+              onPress={() => router.push(`/gasto/${expense.id}` as Href)}
+              style={({ pressed }) => [styles.expenseCard, pressed && styles.expenseCardPressed]}
+            >
               <View style={[styles.expenseIcon, { backgroundColor: `${expense.categoria?.color ?? "#64748B"}18` }]}>
                 <Ionicons name="receipt-outline" size={21} color={expense.categoria?.color ?? "#64748B"} />
               </View>
@@ -212,7 +217,8 @@ export default function HistorialScreen() {
                 {expense.notas ? <Text numberOfLines={1} style={styles.expenseNote}>{expense.notas}</Text> : null}
               </View>
               <Text style={styles.expenseAmount}>- Q {expense.monto.toFixed(2)}</Text>
-            </View>
+              <Ionicons name="chevron-forward" size={17} color="#94A3B8" />
+            </Pressable>
           ))}
         </View>
       ) : (
@@ -264,17 +270,18 @@ const styles = StyleSheet.create({
   categorySummaryAmount: { color: "#0F172A", fontSize: 16, fontWeight: "900", marginTop: 3 },
   categorySummaryCount: { color: "#94A3B8", fontSize: 10, marginTop: 2 },
   listHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 10 },
-  apiStatus: { color: "#15803D", fontSize: 11, fontWeight: "800" },
+  movementCount: { color: "#64748B", fontSize: 11, fontWeight: "700" },
   loadingCard: { alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 14, flexDirection: "row", gap: 10, justifyContent: "center", padding: 24 },
   loadingText: { color: "#64748B" },
   expenseList: { gap: 9 },
   expenseCard: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 14, borderWidth: 1, flexDirection: "row", padding: 12 },
+  expenseCardPressed: { backgroundColor: "#F8FAFC", transform: [{ scale: 0.995 }] },
   expenseIcon: { alignItems: "center", borderRadius: 13, height: 42, justifyContent: "center", width: 42 },
   expenseInfo: { flex: 1, marginHorizontal: 10 },
   expenseDescription: { color: "#1E293B", fontSize: 14, fontWeight: "800" },
   expenseMeta: { color: "#64748B", fontSize: 11, marginTop: 3 },
   expenseNote: { color: "#94A3B8", fontSize: 10, marginTop: 3 },
-  expenseAmount: { color: "#DC2626", fontSize: 13, fontWeight: "900" },
+  expenseAmount: { color: "#DC2626", fontSize: 13, fontWeight: "900", marginRight: 5 },
   emptyCard: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 15, borderWidth: 1, padding: 34 },
   emptyTitle: { color: "#334155", fontSize: 16, fontWeight: "900", marginTop: 10 },
   emptyText: { color: "#64748B", marginTop: 5, textAlign: "center" },
