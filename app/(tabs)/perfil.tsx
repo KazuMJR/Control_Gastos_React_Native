@@ -177,7 +177,7 @@ export default function PerfilScreen() {
             </View>
             <View>
               <Text style={styles.aboutTitle}>Acerca de la aplicación</Text>
-              <Text style={styles.aboutSubtitle}>Conoce los servicios utilizados</Text>
+              <Text style={styles.aboutSubtitle}>Conoce las APIs utilizadas</Text>
             </View>
           </View>
           <Ionicons name={showAbout ? "chevron-up" : "chevron-down"} size={20} color="#64748B" />
@@ -186,7 +186,7 @@ export default function PerfilScreen() {
         {showAbout ? (
           <View style={styles.aboutContent}>
             <Text style={styles.aboutDescription}>
-              Control de Gastos reúne tus finanzas, planificación y compras en una experiencia sencilla. Los datos se consultan desde tres servicios especializados.
+              La aplicación consume tres APIs: una propia para administrar gastos, una colaborativa para las tareas y una externa para el catálogo de productos.
             </Text>
             <View style={styles.serviceRow}>
               <View style={[styles.serviceIcon, { backgroundColor: "#DCFCE7" }]}>
@@ -194,7 +194,7 @@ export default function PerfilScreen() {
               </View>
               <View style={styles.serviceInfo}>
                 <Text style={styles.serviceTitle}>Gastos y categorías</Text>
-                <Text style={styles.serviceText}>Laravel Passport protege el historial, los totales mensuales y los nuevos movimientos.</Text>
+                <Text style={styles.serviceText}>API propia en Laravel Passport para guardar gastos, categorías, totales e historial mensual.</Text>
               </View>
             </View>
             <View style={styles.serviceRow}>
@@ -203,7 +203,7 @@ export default function PerfilScreen() {
               </View>
               <View style={styles.serviceInfo}>
                 <Text style={styles.serviceTitle}>Tareas compartidas</Text>
-                <Text style={styles.serviceText}>Un servicio colaborativo permite registrar tareas y consultar el progreso por fechas y grupos.</Text>
+                <Text style={styles.serviceText}>API colaborativa protegida con Laravel Passport para registrar tareas y consultar el progreso por fechas.</Text>
               </View>
             </View>
             <View style={styles.serviceRow}>
@@ -212,7 +212,7 @@ export default function PerfilScreen() {
               </View>
               <View style={styles.serviceInfo}>
                 <Text style={styles.serviceTitle}>Catálogo de productos</Text>
-                <Text style={styles.serviceText}>El mercado utiliza un catálogo externo, presenta los productos en español y convierte los precios a quetzales.</Text>
+                <Text style={styles.serviceText}>API externa de productos; la aplicación traduce el catálogo y muestra los precios en quetzales.</Text>
               </View>
             </View>
             <Text style={styles.version}>Versión 1.0.0 · Expo SDK 57</Text>

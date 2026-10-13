@@ -37,7 +37,6 @@ const SECONDARY_ACTIONS: {
   { label: "Tareas", icon: "checkbox-outline", route: "/(tabs)/tareas", color: "#7C3AED", background: "#F3E8FF" },
   { label: "Mercado", icon: "storefront-outline", route: "/(tabs)/mercado", color: "#2563EB", background: "#DBEAFE" },
   { label: "Deseados", icon: "heart-outline", route: "/(tabs)/deseados", color: "#DB2777", background: "#FCE7F3" },
-  { label: "Perfil", icon: "person-outline", route: "/(tabs)/perfil", color: "#0891B2", background: "#CFFAFE" },
 ];
 
 export default function HomeScreen() {
@@ -63,8 +62,16 @@ export default function HomeScreen() {
           <Text style={styles.greeting}>Hola, {nombre}</Text>
           <Text style={styles.dateLabel}>Resumen de {monthName}</Text>
         </View>
-        <Pressable onPress={() => router.push("/(tabs)/perfil")} style={styles.avatarButton}>
-          <Ionicons name="person" size={23} color="#1D4ED8" />
+        <Pressable
+          accessibilityLabel="Ir a mi perfil"
+          accessibilityRole="button"
+          onPress={() => router.push("/(tabs)/perfil")}
+          style={({ pressed }) => [styles.profileButton, pressed && styles.profileButtonPressed]}
+        >
+          <View style={styles.profileIcon}>
+            <Ionicons name="person" size={18} color="#1D4ED8" />
+          </View>
+          <Text style={styles.profileButtonText}>Perfil</Text>
         </Pressable>
       </View>
 
@@ -142,7 +149,7 @@ export default function HomeScreen() {
       {expensesLoading ? (
         <View style={styles.loadingCard}>
           <ActivityIndicator color="#2563EB" />
-          <Text style={styles.loadingText}>Sincronizando con Laravel…</Text>
+          <Text style={styles.loadingText}>Actualizando tus gastos…</Text>
         </View>
       ) : gastos.length ? (
         <View style={styles.movementsCard}>
@@ -181,7 +188,10 @@ const styles = StyleSheet.create({
   topBar: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginBottom: 18 },
   greeting: { color: "#0F172A", fontSize: 26, fontWeight: "900" },
   dateLabel: { color: "#64748B", marginTop: 3, textTransform: "capitalize" },
-  avatarButton: { alignItems: "center", backgroundColor: "#DBEAFE", borderRadius: 22, height: 44, justifyContent: "center", width: 44 },
+  profileButton: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#93C5FD", borderRadius: 22, borderWidth: 1, elevation: 2, flexDirection: "row", gap: 7, minHeight: 44, paddingHorizontal: 9, paddingVertical: 5 },
+  profileButtonPressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+  profileIcon: { alignItems: "center", backgroundColor: "#DBEAFE", borderRadius: 15, height: 30, justifyContent: "center", width: 30 },
+  profileButtonText: { color: "#1D4ED8", fontSize: 12, fontWeight: "900" },
   heroCard: { backgroundColor: "#1D4ED8", borderRadius: 21, elevation: 3, marginBottom: 14, padding: 21 },
   heroHeader: { alignItems: "flex-start", flexDirection: "row", justifyContent: "space-between" },
   heroLabel: { color: "#BFDBFE", fontSize: 13, fontWeight: "700" },
