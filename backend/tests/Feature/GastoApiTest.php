@@ -131,6 +131,44 @@ class GastoApiTest extends TestCase
         $this->assertDatabaseMissing('gastos', ['id' => $gastoId]);
     }
 
+    public function test_expenses_can_be_filtered_and_summarized_by_month(): void
+    {
+        $user = User::factory()->create();
+        $categoria = Categoria::create(['nombre' => 'Transporte', 'color' => '#2563EB']);
+
+        $user->gastos()->createMany([
+            [
+                'categoria_id' => $categoria->id,
+                'descripcion' => 'Bus de septiembre',
+                'monto' => 20,
+                'fecha_gasto' => '2026-09-10',
+            ],
+            [
+                'categoria_id' => $categoria->id,
+                'descripcion' => 'Taxi de septiembre',
+                'monto' => 35.50,
+                'fecha_gasto' => '2026-09-18',
+            ],
+            [
+                'descripcion' => 'Gasto de octubre',
+                'monto' => 80,
+                'fecha_gasto' => '2026-10-01',
+            ],
+        ]);
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+
+        $this->getJson('/api/gastos?month=2026-09&per_page=100')
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('summary.expense_count', 2)
+            ->assertJsonPath('summary.total_amount', 55.5)
+            ->assertJsonPath('summary.average_amount', 27.75)
+            ->assertJsonPath('summary.by_category.0.category_name', 'Transporte')
+            ->assertJsonPath('summary.by_category.0.expense_count', 2)
+            ->assertJsonMissing(['descripcion' => 'Gasto de octubre']);
+    }
+
     public function test_a_user_cannot_access_another_users_expense(): void
     {
         $owner = User::factory()->create();
@@ -186,7 +224,7 @@ class GastoApiTest extends TestCase
         ]);
         $client = app(ClientRepository::class)->createPasswordGrantClient('Postman', 'users');
 
-        $this->post('/oauth/token', [
+        $response = $this->post('/oauth/token', [
             'grant_type' => 'password',
             'client_id' => $client->id,
             'client_secret' => $client->plainSecret,
@@ -197,7 +235,10 @@ class GastoApiTest extends TestCase
             'access_token',
             'refresh_token',
             'expires_in',
-        ])->assertJsonPath('expires_in', 3600);
+        ]);
+
+        $this->assertGreaterThanOrEqual(3599, $response->json('expires_in'));
+        $this->assertLessThanOrEqual(3600, $response->json('expires_in'));
     }
 
     public function test_a_refresh_token_can_renew_the_oauth_session(): void

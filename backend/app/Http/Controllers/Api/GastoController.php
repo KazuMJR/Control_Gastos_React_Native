@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gasto;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class GastoController extends Controller
@@ -13,9 +14,51 @@ class GastoController extends Controller
      */
     public function index(Request $request)
     {
-        return response()->json(
-            $request->user()->gastos()->with('categoria')->latest('fecha_gasto')->paginate(15)
-        );
+        $filters = $request->validate([
+            'month' => ['nullable', 'date_format:Y-m'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $query = $request->user()->gastos()->with('categoria');
+
+        if (! empty($filters['month'])) {
+            $month = Carbon::createFromFormat('Y-m', $filters['month']);
+            $query->whereBetween('fecha_gasto', [
+                $month->copy()->startOfMonth()->toDateString(),
+                $month->copy()->endOfMonth()->toDateString(),
+            ]);
+        }
+
+        $total = (float) (clone $query)->sum('monto');
+        $count = (clone $query)->count();
+        $byCategory = (clone $query)
+            ->selectRaw('categoria_id, COUNT(*) as expense_count, SUM(monto) as total_amount')
+            ->groupBy('categoria_id')
+            ->with('categoria:id,nombre,color')
+            ->get()
+            ->map(fn (Gasto $gasto) => [
+                'category_id' => $gasto->categoria_id,
+                'category_name' => $gasto->categoria?->nombre ?? 'Sin categoría',
+                'category_color' => $gasto->categoria?->color ?? '#64748B',
+                'expense_count' => (int) $gasto->expense_count,
+                'total_amount' => (float) $gasto->total_amount,
+            ])
+            ->sortByDesc('total_amount')
+            ->values();
+
+        $paginator = $query
+            ->latest('fecha_gasto')
+            ->latest('id')
+            ->paginate($filters['per_page'] ?? 50);
+        $response = $paginator->toArray();
+        $response['summary'] = [
+            'expense_count' => $count,
+            'total_amount' => $total,
+            'average_amount' => $count > 0 ? round($total / $count, 2) : 0,
+            'by_category' => $byCategory,
+        ];
+
+        return response()->json($response);
     }
 
     /**
