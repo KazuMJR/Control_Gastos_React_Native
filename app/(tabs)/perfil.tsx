@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { router } from "expo-router";
+import { Href, router } from "expo-router";
 import { useContext, useState } from "react";
 import {
   Alert,
@@ -22,29 +22,17 @@ export default function PerfilScreen() {
     setCorreo,
     restablecerAplicacion,
     presupuestoMensual,
-    totalGastadoMes,
-    actualizarSaldo,
+    saldoDespuesPendientes,
   } = useContext(AppContext);
 
   const [notificaciones, setNotificaciones] = useState(true);
   const [showAbout, setShowAbout] = useState(false);
   const [nuevoNombre, setNuevoNombre] = useState(nombre);
   const [nuevoCorreo, setNuevoCorreo] = useState(correo);
-  const [nuevoSaldo, setNuevoSaldo] = useState(presupuestoMensual.toFixed(2));
 
   const guardarPerfil = () => {
-    const saldoNumero = Number(nuevoSaldo.replace(",", "."));
-
     if (!nuevoNombre.trim() || !nuevoCorreo.trim()) {
       Alert.alert("Datos incompletos", "Completa el nombre y el correo electrónico.");
-      return;
-    }
-
-    if (!actualizarSaldo(saldoNumero)) {
-      Alert.alert(
-        "Presupuesto no válido",
-        `El presupuesto no puede ser menor que los Q ${totalGastadoMes.toFixed(2)} ya gastados este mes.`
-      );
       return;
     }
 
@@ -54,7 +42,7 @@ export default function PerfilScreen() {
       pathname: "/resultado",
       params: {
         title: "Perfil actualizado",
-        message: "Tus datos personales y el presupuesto mensual fueron guardados correctamente.",
+        message: "Tus datos personales fueron guardados correctamente.",
         returnTo: "/(tabs)/perfil",
       },
     });
@@ -69,11 +57,10 @@ export default function PerfilScreen() {
         {
           text: "Restablecer",
           style: "destructive",
-          onPress: () => {
-            restablecerAplicacion();
+          onPress: async () => {
+            await restablecerAplicacion();
             setNuevoNombre("Jason");
             setNuevoCorreo("jason@email.com");
-            setNuevoSaldo("2500.00");
             router.push({
               pathname: "/resultado",
               params: {
@@ -136,19 +123,6 @@ export default function PerfilScreen() {
           />
         </View>
 
-        <Text style={styles.label}>Presupuesto mensual</Text>
-        <View style={styles.inputRow}>
-          <Text style={styles.currency}>Q</Text>
-          <TextInput
-            keyboardType="decimal-pad"
-            onChangeText={setNuevoSaldo}
-            placeholder="0.00"
-            style={styles.input}
-            value={nuevoSaldo}
-          />
-        </View>
-        <Text style={styles.budgetHint}>Este mes llevas Q {totalGastadoMes.toFixed(2)} en gastos.</Text>
-
         <View style={styles.preferenceRow}>
           <View style={styles.preferenceInfo}>
             <View style={styles.preferenceIcon}>
@@ -167,6 +141,21 @@ export default function PerfilScreen() {
           <Text style={styles.saveButtonText}>Guardar cambios</Text>
         </Pressable>
       </View>
+
+      <Text style={styles.sectionLabel}>Plan del mes</Text>
+      <Pressable onPress={() => router.push("/(tabs)/pagos" as Href)} style={styles.planCard}>
+        <View style={styles.planIcon}>
+          <Ionicons name="calendar-outline" size={24} color="#15803D" />
+        </View>
+        <View style={styles.planInfo}>
+          <Text style={styles.planTitle}>Administrar presupuesto</Text>
+          <Text style={styles.planText}>Presupuesto actual: Q {presupuestoMensual.toFixed(2)}</Text>
+          <Text style={[styles.planBalance, saldoDespuesPendientes < 0 && styles.planBalanceNegative]}>
+            Después de pendientes: Q {saldoDespuesPendientes.toFixed(2)}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="#64748B" />
+      </Pressable>
 
       <Text style={styles.sectionLabel}>Información</Text>
       <View style={styles.aboutCard}>
@@ -250,8 +239,6 @@ const styles = StyleSheet.create({
   label: { color: "#475569", fontSize: 11, fontWeight: "900", marginBottom: 6, textTransform: "uppercase" },
   inputRow: { alignItems: "center", backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 11, borderWidth: 1, flexDirection: "row", marginBottom: 14, paddingHorizontal: 12 },
   input: { color: "#0F172A", flex: 1, fontSize: 14, paddingHorizontal: 10, paddingVertical: 12 },
-  currency: { color: "#15803D", fontSize: 17, fontWeight: "900" },
-  budgetHint: { color: "#64748B", fontSize: 11, marginBottom: 17, marginTop: -5 },
   preferenceRow: { alignItems: "center", borderTopColor: "#E2E8F0", borderTopWidth: 1, flexDirection: "row", justifyContent: "space-between", paddingBottom: 16, paddingTop: 16 },
   preferenceInfo: { alignItems: "center", flexDirection: "row", gap: 10 },
   preferenceIcon: { alignItems: "center", backgroundColor: "#F3E8FF", borderRadius: 11, height: 38, justifyContent: "center", width: 38 },
@@ -260,6 +247,13 @@ const styles = StyleSheet.create({
   saveButton: { alignItems: "center", backgroundColor: "#2563EB", borderRadius: 11, flexDirection: "row", gap: 8, justifyContent: "center", minHeight: 50 },
   saveButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "900" },
   buttonPressed: { opacity: 0.82 },
+  planCard: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#BBF7D0", borderRadius: 18, borderWidth: 1, flexDirection: "row", marginBottom: 21, padding: 15 },
+  planIcon: { alignItems: "center", backgroundColor: "#DCFCE7", borderRadius: 13, height: 45, justifyContent: "center", width: 45 },
+  planInfo: { flex: 1, marginHorizontal: 11 },
+  planTitle: { color: "#14532D", fontSize: 14, fontWeight: "900" },
+  planText: { color: "#64748B", fontSize: 11, marginTop: 3 },
+  planBalance: { color: "#15803D", fontSize: 11, fontWeight: "800", marginTop: 3 },
+  planBalanceNegative: { color: "#DC2626" },
   aboutCard: { backgroundColor: "#FFFFFF", borderColor: "#E2E8F0", borderRadius: 18, borderWidth: 1, overflow: "hidden" },
   aboutHeader: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", padding: 15 },
   aboutHeaderInfo: { alignItems: "center", flexDirection: "row", gap: 11 },

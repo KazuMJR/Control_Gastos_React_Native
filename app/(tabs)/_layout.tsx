@@ -51,6 +51,16 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="pagos"
+        options={{
+          title: "Pagos",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="perfil"
         options={{
           href: null,

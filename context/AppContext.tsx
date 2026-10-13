@@ -1,12 +1,18 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  createPendingPayment,
   createExpense,
+  deletePendingPayment,
   Expense,
   ExpenseCategory,
   expenseApiErrorMessage,
   getExpenseCategories,
   getExpenseHistory,
+  getMonthlyPlan,
+  MonthlyPlan,
+  payPendingPayment,
+  saveMonthlyPlan,
 } from "../services/expenses-api";
 
 export const AppContext = createContext<any>(null);
@@ -21,18 +27,17 @@ export type CompraDeseada = {
   precioQuetzales: number;
 };
 
-function currentMonthKey() {
+export function currentMonthKey() {
   const today = new Date();
   return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function todayKey() {
+export function todayKey() {
   const today = new Date();
   return `${currentMonthKey()}-${String(today.getDate()).padStart(2, "0")}`;
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [presupuestoMensual, setPresupuestoMensual] = useState(2500);
   const [nombre, setNombre] = useState("Jason");
   const [correo, setCorreo] = useState("jason@email.com");
   const [gastos, setGastos] = useState<Expense[]>([]);
@@ -40,22 +45,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expensesLoading, setExpensesLoading] = useState(true);
   const [gastosApiError, setGastosApiError] = useState<string | null>(null);
   const [deseados, setDeseados] = useState<CompraDeseada[]>([]);
+  const [planMensual, setPlanMensual] = useState<MonthlyPlan>({
+    month: currentMonthKey(),
+    budget_id: null,
+    budget_amount: 2500,
+    allocations: [],
+    pending_payments: [],
+    summary: {
+      spent_amount: 0,
+      pending_amount: 0,
+      available_amount: 2500,
+      projected_available_amount: 2500,
+      allocated_amount: 0,
+      unallocated_amount: 2500,
+    },
+  });
 
-  const totalGastadoMes = useMemo(
-    () => gastos.reduce((total, gasto) => total + gasto.monto, 0),
-    [gastos]
-  );
-  const saldo = Math.max(0, presupuestoMensual - totalGastadoMes);
+  const totalGastadoMes = planMensual.summary.spent_amount;
+  const presupuestoMensual = planMensual.budget_amount;
+  const totalPendiente = planMensual.summary.pending_amount;
+  const saldo = presupuestoMensual - totalGastadoMes;
+  const saldoDespuesPendientes = saldo - totalPendiente;
 
   const refreshExpenses = useCallback(async () => {
     setExpensesLoading(true);
     try {
-      const [history, expenseCategories] = await Promise.all([
+      const [history, expenseCategories, monthlyPlan] = await Promise.all([
         getExpenseHistory(currentMonthKey()),
         getExpenseCategories(),
+        getMonthlyPlan(currentMonthKey()),
       ]);
       setGastos(history.data);
       setCategorias(expenseCategories);
+      setPlanMensual(monthlyPlan);
       setGastosApiError(null);
     } catch (error) {
       setGastosApiError(expenseApiErrorMessage(error));
@@ -78,10 +100,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     categoriaId: number | null = null,
     notas = ""
   ) {
-    if (monto > saldo) {
-      return false;
-    }
-
     await createExpense({
       descripcion: descripcion.trim(),
       monto,
@@ -93,13 +111,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return true;
   }
 
-  function actualizarSaldo(nuevoPresupuesto: number) {
-    if (!Number.isFinite(nuevoPresupuesto) || nuevoPresupuesto < totalGastadoMes) {
-      return false;
-    }
+  async function guardarPlanMensual(
+    nuevoPresupuesto: number,
+    distribuciones: { category_id: number; amount: number }[]
+  ) {
+    const savedPlan = await saveMonthlyPlan({
+      month: currentMonthKey(),
+      amount: nuevoPresupuesto,
+      allocations: distribuciones,
+    });
+    setPlanMensual(savedPlan);
+    return savedPlan;
+  }
 
-    setPresupuestoMensual(nuevoPresupuesto);
-    return true;
+  async function agregarPagoPendiente(input: {
+    descripcion: string;
+    monto: number;
+    fecha_vencimiento: string;
+    categoria_id?: number | null;
+    notas?: string | null;
+  }) {
+    await createPendingPayment(input);
+    await refreshExpenses();
+  }
+
+  async function pagarPendiente(id: number) {
+    await payPendingPayment(id, todayKey());
+    await refreshExpenses();
+  }
+
+  async function eliminarPendiente(id: number) {
+    await deletePendingPayment(id);
+    await refreshExpenses();
   }
 
   function agregarDeseado(compra: CompraDeseada) {
@@ -123,19 +166,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       "Compra registrada desde la lista de deseos."
     );
 
-    if (comprado) {
-      eliminarDeseado(compra.id);
-    }
-
+    eliminarDeseado(compra.id);
     return comprado;
   }
 
-  function restablecerAplicacion() {
-    setPresupuestoMensual(2500);
+  async function restablecerAplicacion() {
     setNombre("Jason");
     setCorreo("jason@email.com");
     setDeseados([]);
-    refreshExpenses();
+    await guardarPlanMensual(2500, []);
+    await refreshExpenses();
   }
 
   const totalDeseados = useMemo(
@@ -149,6 +189,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         saldo,
         presupuestoMensual,
         totalGastadoMes,
+        totalPendiente,
+        saldoDespuesPendientes,
+        planMensual,
         nombre,
         correo,
         gastos,
@@ -158,7 +201,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         deseados,
         totalDeseados,
         agregarGasto,
-        actualizarSaldo,
+        guardarPlanMensual,
+        agregarPagoPendiente,
+        pagarPendiente,
+        eliminarPendiente,
         agregarDeseado,
         eliminarDeseado,
         comprarDeseado,

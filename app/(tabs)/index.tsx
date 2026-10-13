@@ -27,6 +27,11 @@ const MONTH_NAMES = [
   "diciembre",
 ];
 
+function formatQuetzales(amount: number) {
+  const prefix = amount < 0 ? "- Q" : "Q";
+  return `${prefix} ${Math.abs(amount).toFixed(2)}`;
+}
+
 const SECONDARY_ACTIONS: {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
@@ -44,6 +49,8 @@ export default function HomeScreen() {
     saldo,
     presupuestoMensual,
     totalGastadoMes,
+    totalPendiente,
+    saldoDespuesPendientes,
     nombre,
     gastos,
     expensesLoading,
@@ -54,6 +61,7 @@ export default function HomeScreen() {
     ? Math.min(100, (totalGastadoMes / presupuestoMensual) * 100)
     : 0;
   const monthName = MONTH_NAMES[new Date().getMonth()];
+  const overBudget = saldo < 0;
 
   return (
     <ScrollView contentContainerStyle={styles.content} style={styles.container}>
@@ -78,8 +86,8 @@ export default function HomeScreen() {
       <View style={styles.heroCard}>
         <View style={styles.heroHeader}>
           <View>
-            <Text style={styles.heroLabel}>Saldo disponible</Text>
-            <Text style={styles.heroAmount}>Q {saldo.toFixed(2)}</Text>
+            <Text style={styles.heroLabel}>{overBudget ? "Presupuesto excedido" : "Disponible este mes"}</Text>
+            <Text style={styles.heroAmount}>{formatQuetzales(saldo)}</Text>
           </View>
           <View style={styles.apiBadge}>
             <View style={[styles.apiDot, gastosApiError && styles.apiDotError]} />
@@ -87,12 +95,24 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${percentage}%` }]} />
+          <View style={[styles.progressFill, overBudget && styles.progressFillOver, { width: `${percentage}%` }]} />
         </View>
         <View style={styles.budgetRow}>
           <Text style={styles.budgetText}>Gastado: Q {totalGastadoMes.toFixed(2)}</Text>
           <Text style={styles.budgetText}>Presupuesto: Q {presupuestoMensual.toFixed(2)}</Text>
         </View>
+        <Pressable onPress={() => router.push("/(tabs)/pagos" as Href)} style={styles.pendingForecast}>
+          <View style={styles.pendingForecastIcon}>
+            <Ionicons name="calendar-outline" size={19} color="#1D4ED8" />
+          </View>
+          <View style={styles.pendingForecastInfo}>
+            <Text style={styles.pendingForecastTitle}>Pagos pendientes: Q {totalPendiente.toFixed(2)}</Text>
+            <Text style={[styles.pendingForecastAmount, saldoDespuesPendientes < 0 && styles.pendingForecastNegative]}>
+              Después de pagar: {formatQuetzales(saldoDespuesPendientes)}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#BFDBFE" />
+        </Pressable>
       </View>
 
       {gastosApiError ? (
@@ -202,8 +222,15 @@ const styles = StyleSheet.create({
   apiText: { color: "#DBEAFE", fontSize: 10, fontWeight: "800" },
   progressTrack: { backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 5, height: 9, marginTop: 20, overflow: "hidden" },
   progressFill: { backgroundColor: "#93C5FD", borderRadius: 5, height: "100%" },
+  progressFillOver: { backgroundColor: "#FCA5A5" },
   budgetRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 9 },
   budgetText: { color: "#DBEAFE", fontSize: 10, fontWeight: "600" },
+  pendingForecast: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.12)", borderRadius: 14, flexDirection: "row", marginTop: 16, padding: 11 },
+  pendingForecastIcon: { alignItems: "center", backgroundColor: "#DBEAFE", borderRadius: 10, height: 35, justifyContent: "center", width: 35 },
+  pendingForecastInfo: { flex: 1, marginHorizontal: 10 },
+  pendingForecastTitle: { color: "#FFFFFF", fontSize: 11, fontWeight: "800" },
+  pendingForecastAmount: { color: "#BBF7D0", fontSize: 12, fontWeight: "900", marginTop: 3 },
+  pendingForecastNegative: { color: "#FECACA" },
   errorCard: { alignItems: "center", backgroundColor: "#FFFBEB", borderColor: "#FDE68A", borderRadius: 13, borderWidth: 1, flexDirection: "row", gap: 9, marginBottom: 14, padding: 12 },
   errorContent: { flex: 1 },
   errorTitle: { color: "#92400E", fontSize: 12, fontWeight: "900" },

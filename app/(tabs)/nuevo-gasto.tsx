@@ -37,18 +37,9 @@ export default function NuevoGastoScreen() {
       return;
     }
 
-    if (montoNumero > saldo) {
-      Alert.alert("Presupuesto insuficiente", "El gasto supera el saldo disponible de este mes.");
-      return;
-    }
-
     setSaving(true);
     try {
-      const saved = await agregarGasto(descripcion, montoNumero, categoriaId, notas);
-      if (!saved) {
-        Alert.alert("Presupuesto insuficiente", "El gasto supera el saldo disponible de este mes.");
-        return;
-      }
+      await agregarGasto(descripcion, montoNumero, categoriaId, notas);
 
       setDescripcion("");
       setMonto("");
@@ -58,7 +49,7 @@ export default function NuevoGastoScreen() {
         pathname: "/resultado",
         params: {
           title: "Gasto registrado",
-          message: `Se registró ${descripcion} por Q ${montoNumero.toFixed(2)}. Ya aparece en tu historial mensual.`,
+          message: `Se registró ${descripcion} por Q ${montoNumero.toFixed(2)}. ${montoNumero > saldo ? "El monto supera tu disponible y aparecerá como excedente." : "Ya aparece en tu historial mensual."}`,
           returnTo: "/(tabs)/estadisticas",
         },
       });
@@ -123,6 +114,9 @@ export default function NuevoGastoScreen() {
               value={monto}
             />
           </View>
+          {Boolean(monto.trim()) && Number(monto.replace(",", ".")) > saldo ? (
+            <Text style={styles.budgetWarning}>Este gasto supera tu disponible, pero puedes registrarlo para conservar el historial real.</Text>
+          ) : null}
 
           <Text style={styles.label}>Categoría</Text>
           <ScrollView
@@ -215,6 +209,7 @@ const styles = StyleSheet.create({
   amountInputRow: { alignItems: "center", backgroundColor: "#F8FAFC", borderColor: "#CBD5E1", borderRadius: 11, borderWidth: 1, flexDirection: "row", marginBottom: 17, paddingHorizontal: 14 },
   currency: { color: "#15803D", fontSize: 20, fontWeight: "900" },
   amountInput: { color: "#0F172A", flex: 1, fontSize: 20, fontWeight: "800", paddingHorizontal: 10, paddingVertical: 12 },
+  budgetWarning: { color: "#B45309", fontSize: 11, lineHeight: 17, marginBottom: 16, marginTop: -9 },
   categoryList: { gap: 8, paddingBottom: 18 },
   categoryChip: { borderColor: "#CBD5E1", borderRadius: 18, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8 },
   categoryChipSelected: { backgroundColor: "#334155", borderColor: "#334155" },

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosResponse, create as createAxiosClient, isAxiosError } from "axios";
 import { Platform } from "react-native";
 
-const TOKEN_KEY = "control_gastos_passport_token";
+const TOKEN_KEY = "control_gastos_passport_token_v2";
 const configuredApiUrl = process.env.EXPO_PUBLIC_EXPENSES_API_URL?.trim();
 const localApiUrl = Platform.OS === "android" ? "http://10.0.2.2:8000/api" : "http://127.0.0.1:8000/api";
 
@@ -18,6 +18,8 @@ const FULL_SCOPES = [
   "gastos.read",
   "gastos.write",
   "gastos.delete",
+  "plan.read",
+  "plan.write",
 ];
 
 export type ExpenseCategory = {
@@ -59,6 +61,42 @@ export type ExpenseHistory = {
   summary: ExpenseSummary;
 };
 
+export type BudgetAllocation = {
+  id: number;
+  categoria_id: number;
+  monto: number;
+  categoria: ExpenseCategory;
+};
+
+export type PendingPayment = {
+  id: number;
+  descripcion: string;
+  monto: number;
+  fecha_vencimiento: string;
+  estado: "pendiente" | "pagado";
+  fecha_pago: string | null;
+  notas: string | null;
+  categoria_id: number | null;
+  categoria: ExpenseCategory | null;
+  gasto_id: number | null;
+};
+
+export type MonthlyPlan = {
+  month: string;
+  budget_id: number | null;
+  budget_amount: number;
+  allocations: BudgetAllocation[];
+  pending_payments: PendingPayment[];
+  summary: {
+    spent_amount: number;
+    pending_amount: number;
+    available_amount: number;
+    projected_available_amount: number;
+    allocated_amount: number;
+    unallocated_amount: number;
+  };
+};
+
 type RawExpense = Omit<Expense, "monto" | "fecha_gasto"> & {
   monto: number | string;
   fecha_gasto: string;
@@ -72,6 +110,26 @@ type RawExpenseHistory = Omit<ExpenseHistory, "data" | "summary"> & {
     by_category: (Omit<ExpenseCategorySummary, "total_amount"> & {
       total_amount: number | string;
     })[];
+  };
+};
+
+type RawBudgetAllocation = Omit<BudgetAllocation, "monto"> & { monto: number | string };
+type RawPendingPayment = Omit<PendingPayment, "monto"> & {
+  monto: number | string;
+  fecha_vencimiento: string;
+  fecha_pago: string | null;
+};
+type RawMonthlyPlan = Omit<MonthlyPlan, "budget_amount" | "allocations" | "pending_payments" | "summary"> & {
+  budget_amount: number | string;
+  allocations: RawBudgetAllocation[];
+  pending_payments: RawPendingPayment[];
+  summary: {
+    spent_amount: number | string;
+    pending_amount: number | string;
+    available_amount: number | string;
+    projected_available_amount: number | string;
+    allocated_amount: number | string;
+    unallocated_amount: number | string;
   };
 };
 
@@ -145,6 +203,35 @@ function normalizeExpense(expense: RawExpense): Expense {
   };
 }
 
+function normalizePendingPayment(payment: RawPendingPayment): PendingPayment {
+  return {
+    ...payment,
+    monto: Number(payment.monto),
+    fecha_vencimiento: payment.fecha_vencimiento.slice(0, 10),
+    fecha_pago: payment.fecha_pago?.slice(0, 10) ?? null,
+  };
+}
+
+function normalizeMonthlyPlan(plan: RawMonthlyPlan): MonthlyPlan {
+  return {
+    ...plan,
+    budget_amount: Number(plan.budget_amount),
+    allocations: plan.allocations.map((allocation) => ({
+      ...allocation,
+      monto: Number(allocation.monto),
+    })),
+    pending_payments: plan.pending_payments.map(normalizePendingPayment),
+    summary: {
+      spent_amount: Number(plan.summary.spent_amount),
+      pending_amount: Number(plan.summary.pending_amount),
+      available_amount: Number(plan.summary.available_amount),
+      projected_available_amount: Number(plan.summary.projected_available_amount),
+      allocated_amount: Number(plan.summary.allocated_amount),
+      unallocated_amount: Number(plan.summary.unallocated_amount),
+    },
+  };
+}
+
 export async function getExpenseHistory(month: string): Promise<ExpenseHistory> {
   const data = await authorizedRequest(() =>
     expensesApi.get<RawExpenseHistory>("/gastos", {
@@ -185,6 +272,50 @@ export async function createExpense(input: {
 }) {
   const data = await authorizedRequest(() => expensesApi.post<RawExpense>("/gastos", input));
   return normalizeExpense(data);
+}
+
+export async function getMonthlyPlan(month: string) {
+  const data = await authorizedRequest(() =>
+    expensesApi.get<RawMonthlyPlan>("/plan-mensual", { params: { month } })
+  );
+  return normalizeMonthlyPlan(data);
+}
+
+export async function saveMonthlyPlan(input: {
+  month: string;
+  amount: number;
+  allocations: { category_id: number; amount: number }[];
+}) {
+  const data = await authorizedRequest(() =>
+    expensesApi.put<RawMonthlyPlan>("/plan-mensual", input)
+  );
+  return normalizeMonthlyPlan(data);
+}
+
+export async function createPendingPayment(input: {
+  descripcion: string;
+  monto: number;
+  fecha_vencimiento: string;
+  categoria_id?: number | null;
+  notas?: string | null;
+}) {
+  const data = await authorizedRequest(() =>
+    expensesApi.post<RawPendingPayment>("/pagos-pendientes", input)
+  );
+  return normalizePendingPayment(data);
+}
+
+export async function payPendingPayment(id: number, paymentDate?: string) {
+  const data = await authorizedRequest(() =>
+    expensesApi.post<RawPendingPayment>(`/pagos-pendientes/${id}/pagar`, {
+      payment_date: paymentDate,
+    })
+  );
+  return normalizePendingPayment(data);
+}
+
+export async function deletePendingPayment(id: number) {
+  return authorizedRequest(() => expensesApi.delete(`/pagos-pendientes/${id}`));
 }
 
 export async function clearExpenseSession() {

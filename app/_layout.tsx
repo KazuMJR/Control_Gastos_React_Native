@@ -21,6 +21,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="gasto/[id]" options={{ title: "Detalle del gasto" }} />
           <Stack.Screen name="producto/[id]" options={{ title: "Detalle del producto" }} />
+          <Stack.Screen name="plan-mensual" options={{ title: "Plan mensual" }} />
           <Stack.Screen name="resultado" options={{ title: "Operación realizada" }} />
         </Stack>
 

@@ -13,12 +13,8 @@ export default function DeseadosScreen() {
   const comprar = async (item: any) => {
     setPurchasingId(item.id);
     try {
-      if (await comprarDeseado(item)) {
-        Alert.alert("Compra registrada", `${item.titulo} fue agregado a tu historial de gastos.`);
-        return;
-      }
-
-      Alert.alert("Saldo insuficiente", "No tienes saldo disponible para esta compra.");
+      await comprarDeseado(item);
+      Alert.alert("Compra registrada", `${item.titulo} fue agregado a tu historial de gastos.`);
     } catch (error) {
       Alert.alert("No se pudo registrar", expenseApiErrorMessage(error));
     } finally {
@@ -32,7 +28,7 @@ export default function DeseadosScreen() {
         <Text style={styles.summaryTitle}>Mi lista de deseos</Text>
         <Text style={styles.total}>Q {totalDeseados.toFixed(2)}</Text>
         <Text style={alcanzaTotal ? styles.statusSuccess : styles.statusError}>
-          {alcanzaTotal ? `Te alcanza: saldo actual Q ${saldo.toFixed(2)}` : `Te faltan Q ${(totalDeseados - saldo).toFixed(2)}`}
+          {alcanzaTotal ? `Dentro de tu disponible: Q ${saldo.toFixed(2)}` : `Supera tu disponible por Q ${(totalDeseados - saldo).toFixed(2)}; aun puedes registrar las compras`}
         </Text>
       </View>
 

@@ -23,7 +23,7 @@ export default function ProductoDetalleScreen() {
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
   const [error, setError] = useState("");
-  const { agregarDeseado, comprarDeseado, saldo } = useContext(AppContext);
+  const { agregarDeseado, comprarDeseado } = useContext(AppContext);
 
   const loadProduct = useCallback(async () => {
     setLoading(true);
@@ -121,11 +121,7 @@ export default function ProductoDetalleScreen() {
   const registrarCompra = async () => {
     setPurchasing(true);
     try {
-      const purchased = await comprarDeseado(compra);
-      if (!purchased) {
-        Alert.alert("Saldo insuficiente", `Necesitas Q ${compra.precioQuetzales.toFixed(2)} y tienes Q ${saldo.toFixed(2)}.`);
-        return;
-      }
+      await comprarDeseado(compra);
 
       router.push({
         pathname: "/resultado",
