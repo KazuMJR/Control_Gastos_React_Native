@@ -1,0 +1,17 @@
+{
+  "cli": {
+    "version": ">= 16.0.0"
+  },
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_EXPENSES_API_URL": "https://control-gastos-api-mikejasso.azurewebsites.net/api",
+        "EXPO_PUBLIC_TASKS_API_URL": "https://aplicacionweb-bjbhbqgxfefjgph4.spaincentral-01.azurewebsites.net/api"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}
