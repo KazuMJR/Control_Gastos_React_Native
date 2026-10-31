@@ -8,6 +8,7 @@ PERSISTENT_DATA_DIR="/home/data"
 cd "$APP_ROOT"
 
 mkdir -p \
+    resources/views \
     storage/framework/cache \
     storage/framework/sessions \
     storage/framework/views \
