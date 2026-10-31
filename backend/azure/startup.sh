@@ -36,6 +36,8 @@ if [[ -z "${PASSPORT_PRIVATE_KEY:-}" || -z "${PASSPORT_PUBLIC_KEY:-}" ]]; then
 
     ln -sfn "$PASSPORT_KEYS_DIR/oauth-private.key" storage/oauth-private.key
     ln -sfn "$PASSPORT_KEYS_DIR/oauth-public.key" storage/oauth-public.key
+    chmod 600 "$PASSPORT_KEYS_DIR/oauth-private.key"
+    chmod 644 "$PASSPORT_KEYS_DIR/oauth-public.key"
 fi
 
 php artisan migrate --force --no-interaction
