@@ -69,21 +69,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refreshExpenses = useCallback(async () => {
     setExpensesLoading(true);
-    try {
-      const [history, expenseCategories, monthlyPlan] = await Promise.all([
-        getExpenseHistory(currentMonthKey()),
-        getExpenseCategories(),
-        getMonthlyPlan(currentMonthKey()),
-      ]);
-      setGastos(history.data);
-      setCategorias(expenseCategories);
-      setPlanMensual(monthlyPlan);
-      setGastosApiError(null);
-    } catch (error) {
-      setGastosApiError(expenseApiErrorMessage(error));
-    } finally {
-      setExpensesLoading(false);
+    const [historyResult, categoriesResult, planResult] = await Promise.allSettled([
+      getExpenseHistory(currentMonthKey()),
+      getExpenseCategories(),
+      getMonthlyPlan(currentMonthKey()),
+    ]);
+
+    if (historyResult.status === "fulfilled") {
+      setGastos(historyResult.value.data);
     }
+    if (categoriesResult.status === "fulfilled") {
+      setCategorias(categoriesResult.value);
+    }
+    if (planResult.status === "fulfilled") {
+      setPlanMensual(planResult.value);
+    } else if (historyResult.status === "fulfilled") {
+      // Aunque el plan falle, el historial contiene el total real. Mantenerlo
+      // visible evita que el saldo quede congelado después de guardar un gasto.
+      const spentAmount = historyResult.value.summary.total_amount;
+      setPlanMensual((currentPlan) => ({
+        ...currentPlan,
+        summary: {
+          ...currentPlan.summary,
+          spent_amount: spentAmount,
+          available_amount: currentPlan.budget_amount - spentAmount,
+          projected_available_amount:
+            currentPlan.budget_amount - spentAmount - currentPlan.summary.pending_amount,
+        },
+      }));
+    }
+
+    const failedResult = [historyResult, categoriesResult, planResult].find(
+      (result) => result.status === "rejected"
+    );
+
+    if (failedResult?.status === "rejected") {
+      setGastosApiError(expenseApiErrorMessage(failedResult.reason));
+    } else {
+      setGastosApiError(null);
+    }
+
+    setExpensesLoading(false);
   }, []);
 
   useEffect(() => {
@@ -100,15 +126,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     categoriaId: number | null = null,
     notas = ""
   ) {
-    await createExpense({
+    const createdExpense = await createExpense({
       descripcion: descripcion.trim(),
       monto,
       fecha_gasto: todayKey(),
       categoria_id: categoriaId,
       notas: notas.trim() || null,
     });
+
+    // Refleja el movimiento inmediatamente. La consulta posterior reemplaza
+    // este estado optimista con los totales definitivos calculados por la API.
+    setGastos((currentExpenses) => [
+      createdExpense,
+      ...currentExpenses.filter((expense) => expense.id !== createdExpense.id),
+    ]);
+    setPlanMensual((currentPlan) => {
+      const spentAmount = currentPlan.summary.spent_amount + createdExpense.monto;
+
+      return {
+        ...currentPlan,
+        summary: {
+          ...currentPlan.summary,
+          spent_amount: spentAmount,
+          available_amount: currentPlan.budget_amount - spentAmount,
+          projected_available_amount:
+            currentPlan.budget_amount - spentAmount - currentPlan.summary.pending_amount,
+        },
+      };
+    });
+
     await refreshExpenses();
-    return true;
+    return createdExpense;
   }
 
   async function guardarPlanMensual(

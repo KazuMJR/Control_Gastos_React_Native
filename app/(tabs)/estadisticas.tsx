@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Href, router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { Href, router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -78,13 +78,11 @@ export default function HistorialScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
+  useFocusEffect(
+    useCallback(() => {
       void loadHistory(selectedMonth);
-    }, 0);
-
-    return () => clearTimeout(timeout);
-  }, [loadHistory, selectedMonth]);
+    }, [loadHistory, selectedMonth])
+  );
 
   const summary = history?.summary;
   const goToNextMonth = () => {

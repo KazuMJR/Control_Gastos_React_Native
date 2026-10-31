@@ -2,7 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosResponse, create as createAxiosClient, isAxiosError } from "axios";
 import { Platform } from "react-native";
 
-const TOKEN_KEY = "control_gastos_passport_token_v2";
+// La versión forma parte de la clave para descartar automáticamente tokens
+// antiguos que no tengan todos los scopes usados por el plan mensual.
+const TOKEN_KEY = "control_gastos_passport_token_v3";
 const configuredApiUrl = process.env.EXPO_PUBLIC_EXPENSES_API_URL?.trim();
 const localApiUrl = Platform.OS === "android" ? "http://10.0.2.2:8000/api" : "http://127.0.0.1:8000/api";
 
@@ -148,6 +150,8 @@ const expensesApi = createAxiosClient({
   },
 });
 
+let expenseLoginPromise: Promise<void> | null = null;
+
 expensesApi.interceptors.request.use(async (config) => {
   const token = await AsyncStorage.getItem(TOKEN_KEY);
 
@@ -173,9 +177,19 @@ async function loginToExpensesApi() {
   await AsyncStorage.setItem(TOKEN_KEY, data.token);
 }
 
+async function refreshExpenseSession() {
+  if (!expenseLoginPromise) {
+    expenseLoginPromise = loginToExpensesApi().finally(() => {
+      expenseLoginPromise = null;
+    });
+  }
+
+  return expenseLoginPromise;
+}
+
 async function ensureExpenseSession() {
   if (!(await AsyncStorage.getItem(TOKEN_KEY))) {
-    await loginToExpensesApi();
+    await refreshExpenseSession();
   }
 }
 
@@ -185,9 +199,12 @@ async function authorizedRequest<T>(request: () => Promise<AxiosResponse<T>>) {
   try {
     return (await request()).data;
   } catch (error) {
-    if (isAxiosError(error) && error.response?.status === 401) {
+    // Un token anterior puede seguir siendo válido, pero carecer de los scopes
+    // agregados después. En ese caso Passport responde 403 y también debemos
+    // iniciar una sesión nueva antes de repetir la petición una sola vez.
+    if (isAxiosError(error) && [401, 403].includes(error.response?.status ?? 0)) {
       await AsyncStorage.removeItem(TOKEN_KEY);
-      await loginToExpensesApi();
+      await refreshExpenseSession();
       return (await request()).data;
     }
 
