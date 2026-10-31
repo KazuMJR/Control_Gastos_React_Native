@@ -1,0 +1,3 @@
+*.sh text eol=lf
+*.yml text eol=lf
+backend/default text eol=lf
