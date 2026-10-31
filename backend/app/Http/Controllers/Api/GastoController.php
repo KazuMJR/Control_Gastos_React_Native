@@ -22,7 +22,9 @@ class GastoController extends Controller
         $query = $request->user()->gastos()->with('categoria');
 
         if (! empty($filters['month'])) {
-            $month = Carbon::createFromFormat('Y-m', $filters['month']);
+            // El prefijo ! reinicia el día a 1. Sin él, Carbon conserva el día
+            // actual y un día 31 puede desbordar septiembre hacia octubre.
+            $month = Carbon::createFromFormat('!Y-m', $filters['month']);
             $query->whereBetween('fecha_gasto', [
                 $month->copy()->startOfMonth()->toDateString(),
                 $month->copy()->endOfMonth()->toDateString(),

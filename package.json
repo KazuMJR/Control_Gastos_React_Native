@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",
+    "start:cloud": "expo start --tunnel --clear",
     "dev": "node ./scripts/start-integrated.js",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",

@@ -2,7 +2,7 @@
 /* global __dirname */
 
 const { spawn, spawnSync } = require("node:child_process");
-const { existsSync, writeFileSync } = require("node:fs");
+const { existsSync, readFileSync, writeFileSync } = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
@@ -35,6 +35,7 @@ const tasksLaravelRouter = path.join(
   "server.php"
 );
 const expoCli = path.join(root, "node_modules", "expo", "bin", "cli");
+const envLocalPath = path.join(root, ".env.local");
 const children = new Set();
 let stopping = false;
 
@@ -46,6 +47,44 @@ function requireFile(file, message) {
   if (!existsSync(file)) {
     throw new Error(message);
   }
+}
+
+function readEnvValue(file, name) {
+  if (!existsSync(file)) {
+    return "";
+  }
+
+  const line = readFileSync(file, "utf8")
+    .split(/\r?\n/)
+    .find((candidate) => candidate.trim().startsWith(`${name}=`));
+
+  return line ? line.slice(line.indexOf("=") + 1).trim().replace(/^['"]|['"]$/g, "") : "";
+}
+
+function normalizeApiUrl(value) {
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const parsed = new URL(value.trim());
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function isStableRemoteApi(value) {
+  if (!value) {
+    return false;
+  }
+
+  const parsed = new URL(value);
+  const localHosts = new Set(["localhost", "127.0.0.1", "10.0.2.2"]);
+
+  return parsed.protocol === "https:"
+    && !localHosts.has(parsed.hostname)
+    && !parsed.hostname.endsWith(".trycloudflare.com");
 }
 
 function run(command, args, cwd) {
@@ -194,57 +233,79 @@ async function openApiTunnel(localUrl, label) {
 }
 
 async function main() {
+  const configuredTasksApiUrl = normalizeApiUrl(
+    process.env.EXPO_PUBLIC_TASKS_API_URL || readEnvValue(envLocalPath, "EXPO_PUBLIC_TASKS_API_URL")
+  );
+  const useRemoteTasksApi = isStableRemoteApi(configuredTasksApiUrl);
+
   requireFile(php, "No se encontró .tools/php/php.exe.");
   requireFile(cloudflared, "No se encontró .tools/cloudflared.exe.");
   requireFile(expensesArtisan, "No se encontró la API propia de gastos.");
-  requireFile(tasksArtisan, "No se encontró la API colaborativa de tareas.");
   requireFile(expensesLaravelRouter, "Faltan dependencias de la API de gastos. Ejecuta composer install en backend.");
-  requireFile(tasksLaravelRouter, "Faltan dependencias de la API de tareas. Ejecuta composer install en su backend.");
   requireFile(expoCli, "Faltan dependencias de Expo. Ejecuta npm install una vez.");
 
+  if (!useRemoteTasksApi) {
+    requireFile(tasksArtisan, "No se encontró la API colaborativa de tareas.");
+    requireFile(tasksLaravelRouter, "Faltan dependencias de la API de tareas. Ejecuta composer install en su backend.");
+  }
+
   ensurePassportKeys(expensesBackend, expensesArtisan);
-  ensurePassportKeys(tasksBackend, tasksArtisan);
+  if (!useRemoteTasksApi) {
+    ensurePassportKeys(tasksBackend, tasksArtisan);
+  }
 
   log("Preparando gastos, categorías y la cuenta de demostración…");
   run(php, [expensesArtisan, "migrate", "--force"], expensesBackend);
   run(php, [expensesArtisan, "db:seed", "--class=Database\\Seeders\\DemoExpenseIntegrationSeeder", "--force"], expensesBackend);
 
-  log("Preparando tareas y la cuenta colaborativa…");
-  run(php, [tasksArtisan, "migrate", "--force"], tasksBackend);
-  run(php, [tasksArtisan, "db:seed", "--class=Database\\Seeders\\DemoTaskIntegrationSeeder", "--force"], tasksBackend);
+  if (!useRemoteTasksApi) {
+    log("Preparando tareas y la cuenta colaborativa local…");
+    run(php, [tasksArtisan, "migrate", "--force"], tasksBackend);
+    run(php, [tasksArtisan, "db:seed", "--class=Database\\Seeders\\DemoTaskIntegrationSeeder", "--force"], tasksBackend);
+  } else {
+    log(`Usando la API de tareas publicada: ${configuredTasksApiUrl}`);
+  }
 
-  log("Iniciando la API de gastos en el puerto 8000 y la API de tareas en el 8001…");
+  log(useRemoteTasksApi
+    ? "Iniciando la API de gastos en el puerto 8000…"
+    : "Iniciando la API de gastos en el puerto 8000 y la API de tareas en el 8001…");
   const expensesLaravel = start(
     php,
     ["-S", "127.0.0.1:8000", expensesLaravelRouter],
     path.join(expensesBackend, "public"),
     { stdio: ["ignore", "pipe", "pipe"] }
   );
-  const tasksLaravel = start(
-    php,
-    ["-S", "127.0.0.1:8001", tasksLaravelRouter],
-    path.join(tasksBackend, "public"),
-    { stdio: ["ignore", "pipe", "pipe"] }
-  );
+  const tasksLaravel = useRemoteTasksApi
+    ? null
+    : start(
+      php,
+      ["-S", "127.0.0.1:8001", tasksLaravelRouter],
+      path.join(tasksBackend, "public"),
+      { stdio: ["ignore", "pipe", "pipe"] }
+    );
   pipeWithPrefix(expensesLaravel.stdout, "API gastos");
   pipeWithPrefix(expensesLaravel.stderr, "API gastos");
-  pipeWithPrefix(tasksLaravel.stdout, "API tareas");
-  pipeWithPrefix(tasksLaravel.stderr, "API tareas");
+  if (tasksLaravel) {
+    pipeWithPrefix(tasksLaravel.stdout, "API tareas");
+    pipeWithPrefix(tasksLaravel.stderr, "API tareas");
+  }
   await Promise.all([
     waitForApi("http://127.0.0.1:8000/up", expensesLaravel),
-    waitForApi("http://127.0.0.1:8001/up", tasksLaravel),
+    ...(tasksLaravel ? [waitForApi("http://127.0.0.1:8001/up", tasksLaravel)] : []),
   ]);
 
-  log("Creando direcciones HTTPS temporales para ambas API…");
-  const [expensesApiOrigin, tasksApiOrigin] = await Promise.all([
-    openApiTunnel("http://127.0.0.1:8000", "gastos"),
-    openApiTunnel("http://127.0.0.1:8001", "tareas"),
-  ]);
+  log(useRemoteTasksApi
+    ? "Creando una dirección HTTPS temporal para la API de gastos…"
+    : "Creando direcciones HTTPS temporales para ambas API…");
+  const expensesApiOrigin = await openApiTunnel("http://127.0.0.1:8000", "gastos");
+  const tasksApiOrigin = tasksLaravel
+    ? await openApiTunnel("http://127.0.0.1:8001", "tareas")
+    : null;
 
   const expensesApiUrl = `${expensesApiOrigin}/api`;
-  const tasksApiUrl = `${tasksApiOrigin}/api`;
+  const tasksApiUrl = tasksApiOrigin ? `${tasksApiOrigin}/api` : configuredTasksApiUrl;
   writeFileSync(
-    path.join(root, ".env.local"),
+    envLocalPath,
     `EXPO_PUBLIC_EXPENSES_API_URL=${expensesApiUrl}\nEXPO_PUBLIC_TASKS_API_URL=${tasksApiUrl}\n`,
     "utf8"
   );

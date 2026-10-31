@@ -52,13 +52,13 @@ export type TaskProgress = {
 export type CollaborativeTask = {
   id: string;
   title: string;
-  description: string | null;
+  description?: string | null;
   categoryId: string | null;
   completed: boolean;
   category_name: string | null;
   category_color: string | null;
-  created_at: string;
-  updated_at: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 type AuthResponse = {
@@ -143,11 +143,76 @@ export async function getCollaborativeCategories() {
   return data;
 }
 
-export async function getTaskProgress(from: string, to: string) {
-  const { data } = await collaborativeTasksApi.get<TaskProgress>("/tasks/progress", {
-    params: { from, to },
+function buildProgressFromTasks(tasks: CollaborativeTask[], from: string, to: string): TaskProgress {
+  // Algunas versiones anteriores de la API no incluyen created_at. Esas tareas
+  // se conservan para que el tablero siga siendo útil hasta actualizar el backend.
+  const filteredTasks = tasks.filter((task) => {
+    const createdDate = task.created_at?.slice(0, 10);
+    return !createdDate || (createdDate >= from && createdDate <= to);
   });
-  return data;
+  const groups = new Map<string, CollaborativeTask[]>();
+
+  for (const task of filteredTasks) {
+    const key = task.categoryId ? `category:${task.categoryId}` : "uncategorized";
+    groups.set(key, [...(groups.get(key) ?? []), task]);
+  }
+
+  const mappedGroups = [...groups.values()]
+    .map<TaskProgressGroup>((groupTasks) => {
+      const firstTask = groupTasks[0];
+      const completed = groupTasks.filter((task) => task.completed).length;
+      const total = groupTasks.length;
+
+      return {
+        category_id: firstTask.categoryId,
+        category_name: firstTask.category_name ?? "Sin categoría",
+        category_color: firstTask.category_color ?? "#94A3B8",
+        total_tasks: total,
+        completed_tasks: completed,
+        pending_tasks: total - completed,
+        percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+        tasks: groupTasks.map((task) => ({
+          id: String(task.id),
+          title: task.title,
+          description: task.description ?? null,
+          completed: Boolean(task.completed),
+          created_at: task.created_at ?? "",
+        })),
+      };
+    })
+    .sort((left, right) => left.category_name.localeCompare(right.category_name, "es"));
+  const completed = filteredTasks.filter((task) => task.completed).length;
+  const total = filteredTasks.length;
+
+  return {
+    range: { from, to },
+    summary: {
+      total_tasks: total,
+      completed_tasks: completed,
+      pending_tasks: total - completed,
+      percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+    },
+    groups: mappedGroups,
+  };
+}
+
+export async function getTaskProgress(from: string, to: string) {
+  try {
+    const { data } = await collaborativeTasksApi.get<TaskProgress>("/tasks/progress", {
+      params: { from, to },
+    });
+    return data;
+  } catch (error) {
+    // En el despliegue anterior, apiResource interpreta "progress" como un ID.
+    // El respaldo permite trabajar con /tasks y desaparece automáticamente al
+    // publicar la versión nueva que ya contiene el reporte por fechas.
+    if (!isAxiosError(error) || error.response?.status !== 404) {
+      throw error;
+    }
+
+    const { data } = await collaborativeTasksApi.get<CollaborativeTask[]>("/tasks");
+    return buildProgressFromTasks(data, from, to);
+  }
 }
 
 export async function createCollaborativeTask(
