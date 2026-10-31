@@ -1,0 +1,34 @@
+# Archivos que no son necesarios para compilar la aplicación móvil.
+.git/
+node_modules/
+.tools/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.env.local
+.env*.local
+
+# El backend y el proyecto colaborativo se publican por separado.
+backend/
+Proyecto_Colaborativo/
+.github/
+.postman/
+postman/
+AZURE.md
+API.md
+
+# Archivos locales y generados.
+*.pptx
+*.pdf
+*.apk
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.tsbuildinfo
+ios/
+android/
+
+# credentials.json y .eas-credentials se incluyen intencionalmente para que
+# EAS firme el APK con las credenciales locales protegidas del proyecto.
