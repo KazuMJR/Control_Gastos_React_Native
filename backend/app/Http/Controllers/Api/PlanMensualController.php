@@ -60,7 +60,9 @@ class PlanMensualController extends Controller
 
     private function planData(Request $request, string $month): array
     {
-        $period = Carbon::createFromFormat('Y-m', $month);
+        // Reiniciar las partes de fecha no incluidas evita que el día actual
+        // desborde meses cortos (por ejemplo, consultar septiembre un día 31).
+        $period = Carbon::createFromFormat('!Y-m', $month);
         $start = $period->copy()->startOfMonth()->toDateString();
         $end = $period->copy()->endOfMonth()->toDateString();
         $budget = $request->user()->presupuestosMensuales()
@@ -70,7 +72,8 @@ class PlanMensualController extends Controller
 
         $budgetAmount = (float) ($budget?->monto ?? 2500);
         $spentAmount = (float) $request->user()->gastos()
-            ->whereBetween('fecha_gasto', [$start, $end])
+            ->whereDate('fecha_gasto', '>=', $start)
+            ->whereDate('fecha_gasto', '<=', $end)
             ->sum('monto');
         $pendingQuery = $request->user()->pagosPendientes()
             ->with('categoria:id,nombre,color')

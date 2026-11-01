@@ -25,10 +25,11 @@ class GastoController extends Controller
             // El prefijo ! reinicia el día a 1. Sin él, Carbon conserva el día
             // actual y un día 31 puede desbordar septiembre hacia octubre.
             $month = Carbon::createFromFormat('!Y-m', $filters['month']);
-            $query->whereBetween('fecha_gasto', [
-                $month->copy()->startOfMonth()->toDateString(),
-                $month->copy()->endOfMonth()->toDateString(),
-            ]);
+            // El cast del modelo puede persistir la fecha con 00:00:00 incluso
+            // cuando la columna es date. whereDate incluye correctamente el
+            // último día del mes en SQLite, MySQL y los demás motores.
+            $query->whereDate('fecha_gasto', '>=', $month->copy()->startOfMonth()->toDateString())
+                ->whereDate('fecha_gasto', '<=', $month->copy()->endOfMonth()->toDateString());
         }
 
         $total = (float) (clone $query)->sum('monto');

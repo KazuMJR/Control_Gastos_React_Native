@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Categoria;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Passport\ClientRepository;
@@ -135,6 +136,7 @@ class GastoApiTest extends TestCase
 
     public function test_expenses_can_be_filtered_and_summarized_by_month(): void
     {
+        Carbon::setTestNow('2026-10-31 12:00:00');
         $user = User::factory()->create();
         $categoria = Categoria::create(['nombre' => 'Transporte', 'color' => '#2563EB']);
 
@@ -149,7 +151,7 @@ class GastoApiTest extends TestCase
                 'categoria_id' => $categoria->id,
                 'descripcion' => 'Taxi de septiembre',
                 'monto' => 35.50,
-                'fecha_gasto' => '2026-09-18',
+                'fecha_gasto' => '2026-09-30',
             ],
             [
                 'descripcion' => 'Gasto de octubre',
@@ -169,6 +171,39 @@ class GastoApiTest extends TestCase
             ->assertJsonPath('summary.by_category.0.category_name', 'Transporte')
             ->assertJsonPath('summary.by_category.0.expense_count', 2)
             ->assertJsonMissing(['descripcion' => 'Gasto de octubre']);
+    }
+
+    public function test_monthly_plan_uses_the_requested_month_on_day_thirty_one(): void
+    {
+        Carbon::setTestNow('2026-10-31 12:00:00');
+        $user = User::factory()->create();
+        $user->gastos()->createMany([
+            [
+                'descripcion' => 'Gasto de septiembre',
+                'monto' => 90,
+                'fecha_gasto' => '2026-09-30',
+            ],
+            [
+                'descripcion' => 'Gasto de octubre',
+                'monto' => 140,
+                'fecha_gasto' => '2026-10-31',
+            ],
+        ]);
+
+        $this->assertSame(
+            90.0,
+            (float) $user->gastos()
+                ->whereDate('fecha_gasto', '>=', '2026-09-01')
+                ->whereDate('fecha_gasto', '<=', '2026-09-30')
+                ->sum('monto'),
+        );
+
+        Passport::actingAs($user, self::FULL_SCOPES);
+
+        $this->getJson('/api/plan-mensual?month=2026-09')
+            ->assertOk()
+            ->assertJsonPath('month', '2026-09')
+            ->assertJsonPath('summary.spent_amount', 90);
     }
 
     public function test_a_user_cannot_access_another_users_expense(): void
