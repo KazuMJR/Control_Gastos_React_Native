@@ -126,6 +126,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     categoriaId: number | null = null,
     notas = ""
   ) {
+    const expectedSpentAmount = planMensual.summary.spent_amount + monto;
     const createdExpense = await createExpense({
       descripcion: descripcion.trim(),
       monto,
@@ -156,6 +157,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     await refreshExpenses();
+
+    // Una respuesta mensual almacenada en caché o un despliegue antiguo de la
+    // API no debe borrar un registro que POST /gastos ya confirmó. Conservamos
+    // el movimiento y el saldo esperado hasta que la siguiente consulta del
+    // servidor incluya el nuevo ID.
+    setGastos((currentExpenses) => currentExpenses.some(
+      (expense) => expense.id === createdExpense.id
+    ) ? currentExpenses : [createdExpense, ...currentExpenses]);
+    setPlanMensual((currentPlan) => {
+      const spentAmount = Math.max(
+        currentPlan.summary.spent_amount,
+        expectedSpentAmount
+      );
+
+      return {
+        ...currentPlan,
+        summary: {
+          ...currentPlan.summary,
+          spent_amount: spentAmount,
+          available_amount: currentPlan.budget_amount - spentAmount,
+          projected_available_amount:
+            currentPlan.budget_amount - spentAmount - currentPlan.summary.pending_amount,
+        },
+      };
+    });
+
     return createdExpense;
   }
 

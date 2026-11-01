@@ -2,7 +2,7 @@
   "expo": {
     "name": "ControldeGastos",
     "slug": "ControldeGastos",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "controldegastos",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.mikejasso.controldegastos",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

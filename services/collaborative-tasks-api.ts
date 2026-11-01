@@ -7,8 +7,10 @@ const configuredApiUrl = process.env.EXPO_PUBLIC_TASKS_API_URL?.trim();
 const localApiUrl = Platform.OS === "android" ? "http://10.0.2.2:8001/api" : "http://127.0.0.1:8001/api";
 
 export const COLLABORATIVE_TASKS_API_URL = (configuredApiUrl || localApiUrl).replace(/\/$/, "");
-export const COLLABORATIVE_DEMO_EMAIL = "integracion@controlgastos.test";
-export const COLLABORATIVE_DEMO_PASSWORD = "Tareas2026!";
+// Cuenta compartida para la demostración académica. También se usa para
+// precargar el formulario, por lo que el usuario puede editarla o borrarla.
+export const COLLABORATIVE_DEMO_EMAIL = "hennrryc@gmail.com";
+export const COLLABORATIVE_DEMO_PASSWORD = "123456789";
 
 export type CollaborativeCategory = {
   id: string;
