@@ -149,10 +149,9 @@ Este comando realiza automáticamente lo necesario para la demostración:
 - crea una dirección HTTPS temporal para cada API y guarda ambas en `.env.local`;
 - abre Expo mediante un túnel con la caché limpia, evitando bloqueos de Metro en el teléfono.
 
-Escanea el código QR con Expo Go. Los gastos del mes, el historial, las categorías y las tareas se consultan y guardan en sus respectivas API. En la pestaña **Tareas**, pulsa **Entrar a la demostración**. No es necesario escribir correo ni contraseña. Si se necesitan para mostrar el proceso manual, son:
+Escanea el código QR con Expo Go. Los gastos del mes, el historial, las categorías y las tareas se consultan y guardan en sus respectivas API. La aplicación usa automáticamente la cuenta compartida para que los gastos creados desde cualquiera de los dos aplicativos aparezcan en ambos. No es necesario escribir correo ni contraseña.
 
-- correo: `integracion@controlgastos.test`
-- contraseña: `Tareas2026!`
+Las credenciales compartidas se configuran fuera del repositorio mediante `EXPO_PUBLIC_SHARED_DEMO_EMAIL` y `EXPO_PUBLIC_SHARED_DEMO_PASSWORD`. Para desarrollo local se guardan en `.env.local`; para el APK se administran como variables protegidas del entorno `preview` de Expo EAS.
 
 Los túneles permiten usar el teléfono aunque el router aísle los dispositivos. Mantén esa terminal abierta durante la demostración; al presionar `Ctrl+C` se cierran Expo, ambos túneles y las dos API de Laravel. Las direcciones cambian en cada inicio y dejan de funcionar al cerrar el comando.
 

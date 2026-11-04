@@ -2,15 +2,18 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AxiosResponse, create as createAxiosClient, isAxiosError } from "axios";
 import { Platform } from "react-native";
 
-// La versión forma parte de la clave para descartar automáticamente tokens
-// antiguos que no tengan todos los scopes usados por el plan mensual.
-const TOKEN_KEY = "control_gastos_passport_token_v3";
+// La cuenta forma parte de la clave para impedir que una actualización reutilice
+// el token de otro usuario. Así, ambos aplicativos leen y escriben los gastos de
+// la misma cuenta compartida desde la primera apertura de esta versión.
+const TOKEN_KEY = "control_gastos_passport_token_v4_shared_account";
 const configuredApiUrl = process.env.EXPO_PUBLIC_EXPENSES_API_URL?.trim();
+const configuredSharedEmail = process.env.EXPO_PUBLIC_SHARED_DEMO_EMAIL?.trim();
+const configuredSharedPassword = process.env.EXPO_PUBLIC_SHARED_DEMO_PASSWORD;
 const localApiUrl = Platform.OS === "android" ? "http://10.0.2.2:8000/api" : "http://127.0.0.1:8000/api";
 
 export const EXPENSES_API_URL = (configuredApiUrl || localApiUrl).replace(/\/$/, "");
-export const EXPENSES_DEMO_EMAIL = "integracion@controlgastos.test";
-export const EXPENSES_DEMO_PASSWORD = "Tareas2026!";
+export const EXPENSES_DEMO_EMAIL = configuredSharedEmail || "";
+export const EXPENSES_DEMO_PASSWORD = configuredSharedPassword || "";
 
 const FULL_SCOPES = [
   "perfil.read",
@@ -163,6 +166,10 @@ expensesApi.interceptors.request.use(async (config) => {
 });
 
 async function loginToExpensesApi() {
+  if (!EXPENSES_DEMO_EMAIL || !EXPENSES_DEMO_PASSWORD) {
+    throw new Error("Faltan las credenciales de la cuenta compartida de gastos.");
+  }
+
   const { data } = await expensesApi.post<AuthResponse>("/auth/login", {
     email: EXPENSES_DEMO_EMAIL,
     password: EXPENSES_DEMO_PASSWORD,

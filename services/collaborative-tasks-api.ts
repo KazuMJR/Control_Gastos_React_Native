@@ -4,13 +4,15 @@ import { Platform } from "react-native";
 
 const TOKEN_KEY = "collaborative_tasks_passport_token";
 const configuredApiUrl = process.env.EXPO_PUBLIC_TASKS_API_URL?.trim();
+const configuredSharedEmail = process.env.EXPO_PUBLIC_SHARED_DEMO_EMAIL?.trim();
+const configuredSharedPassword = process.env.EXPO_PUBLIC_SHARED_DEMO_PASSWORD;
 const localApiUrl = Platform.OS === "android" ? "http://10.0.2.2:8001/api" : "http://127.0.0.1:8001/api";
 
 export const COLLABORATIVE_TASKS_API_URL = (configuredApiUrl || localApiUrl).replace(/\/$/, "");
-// Cuenta compartida para la demostración académica. También se usa para
-// precargar el formulario, por lo que el usuario puede editarla o borrarla.
-export const COLLABORATIVE_DEMO_EMAIL = "hennrryc@gmail.com";
-export const COLLABORATIVE_DEMO_PASSWORD = "123456789";
+// La misma cuenta se configura fuera del repositorio para gastos y tareas.
+// El formulario la muestra precargada, pero el usuario puede editarla o borrarla.
+export const COLLABORATIVE_DEMO_EMAIL = configuredSharedEmail || "";
+export const COLLABORATIVE_DEMO_PASSWORD = configuredSharedPassword || "";
 
 export type CollaborativeCategory = {
   id: string;
@@ -122,6 +124,10 @@ export async function loginToCollaborativeApi(email: string, password: string) {
 }
 
 export async function loginToCollaborativeDemo() {
+  if (!COLLABORATIVE_DEMO_EMAIL || !COLLABORATIVE_DEMO_PASSWORD) {
+    throw new Error("Faltan las credenciales de la cuenta compartida.");
+  }
+
   return loginToCollaborativeApi(COLLABORATIVE_DEMO_EMAIL, COLLABORATIVE_DEMO_PASSWORD);
 }
 
