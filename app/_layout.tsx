@@ -5,6 +5,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
+import { SharedAccountGate } from "../components/shared-account-gate";
 import { AppProvider } from "../context/AppContext";
 
 export const unstable_settings = {
@@ -15,18 +16,20 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <AppProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="gasto/[id]" options={{ title: "Detalle del gasto" }} />
-          <Stack.Screen name="producto/[id]" options={{ title: "Detalle del producto" }} />
-          <Stack.Screen name="plan-mensual" options={{ title: "Plan mensual" }} />
-          <Stack.Screen name="resultado" options={{ title: "Operación realizada" }} />
-        </Stack>
+    <SharedAccountGate>
+      <AppProvider>
+        <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="gasto/[id]" options={{ title: "Detalle del gasto" }} />
+            <Stack.Screen name="producto/[id]" options={{ title: "Detalle del producto" }} />
+            <Stack.Screen name="plan-mensual" options={{ title: "Plan mensual" }} />
+            <Stack.Screen name="resultado" options={{ title: "Operación realizada" }} />
+          </Stack>
 
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </AppProvider>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </AppProvider>
+    </SharedAccountGate>
   );
 }

@@ -167,12 +167,20 @@ expensesApi.interceptors.request.use(async (config) => {
 
 async function loginToExpensesApi() {
   if (!EXPENSES_DEMO_EMAIL || !EXPENSES_DEMO_PASSWORD) {
-    throw new Error("Faltan las credenciales de la cuenta compartida de gastos.");
+    throw new Error("Inicia sesión con la cuenta compartida para consultar los gastos.");
+  }
+
+  return authenticateExpensesApi(EXPENSES_DEMO_EMAIL, EXPENSES_DEMO_PASSWORD);
+}
+
+async function authenticateExpensesApi(email: string, password: string) {
+  if (!email.trim() || !password) {
+    throw new Error("Escribe el correo y la contraseña de la cuenta compartida.");
   }
 
   const { data } = await expensesApi.post<AuthResponse>("/auth/login", {
-    email: EXPENSES_DEMO_EMAIL,
-    password: EXPENSES_DEMO_PASSWORD,
+    email: email.trim().toLowerCase(),
+    password,
     device_name: "Aplicación móvil",
     scopes: FULL_SCOPES,
   });
@@ -182,6 +190,15 @@ async function loginToExpensesApi() {
   }
 
   await AsyncStorage.setItem(TOKEN_KEY, data.token);
+}
+
+export async function loginToExpensesAccount(email: string, password: string) {
+  await AsyncStorage.removeItem(TOKEN_KEY);
+  return authenticateExpensesApi(email, password);
+}
+
+export async function getExpenseToken() {
+  return AsyncStorage.getItem(TOKEN_KEY);
 }
 
 async function refreshExpenseSession() {

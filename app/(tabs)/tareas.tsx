@@ -278,7 +278,7 @@ export default function CollaborativeTasksScreen() {
             Revisa el avance por fechas, consulta cada grupo y registra nuevas actividades desde un solo lugar.
           </Text>
 
-          {!registerMode ? (
+          {!registerMode && COLLABORATIVE_DEMO_EMAIL && COLLABORATIVE_DEMO_PASSWORD ? (
             <>
               <Pressable disabled={authenticating} onPress={authenticateDemo} style={styles.demoButton}>
                 {authenticating ? (
